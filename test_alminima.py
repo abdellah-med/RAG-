@@ -5,6 +5,7 @@ import re
 from qdrant_client import QdrantClient
 from qdrant_client.models import Distance, VectorParams, PointStruct
 from sentence_transformers import SentenceTransformer
+from agnooo import retrieve_and_ask
 
 # Chargement de MiniLM-L6
 model = SentenceTransformer("sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2")
@@ -158,7 +159,12 @@ if __name__ == "__main__":
     if should_index:
         index_all_pdfs(client, collection_name, "ALLERG_IA")
     
-    query = "C'est quoi l'impact de l'environnement sur l'allergie ?"
+    query = f"Allergologue : Bonjour, Monsieur. Je suis le Dr. Martin, allergologue. Qu'est-ce qui vous amène aujourd'hui ?\n"
+    "Patient : Bonjour, docteur. Depuis plusieurs semaines, j'ai une toux persistante et le nez qui coule en permanence. J'ai aussi des démangeaisons aux yeux et parfois une sensation d'oppression dans la poitrine.\n\n"
+    "Allergologue : Je vois. Ces symptômes surviennent-ils toute l'année ou seulement à certaines périodes ?\n"
+    "Patient : Plutôt au printemps et en été, mais parfois aussi en hiver quand je suis à la maison.\n\n"
+    "Allergologue : D'accord. Avez-vous remarqué si ces symptômes s'aggravent en présence de certains éléments, comme la poussière, les animaux ou le pollen ?\n"
+    "Patient : Oui, quand je sors dans un parc ou que je suis proche d'arbres en fleurs, ça empire. Et à la maison, le matin en me réveillant, j'ai souvent le nez bouché.\n\n"
     top_docs = get_similar_documents(client, collection_name, query, 5)
     
     print("\n🔍 **Résultats de la recherche** 🔍\n")
@@ -168,3 +174,13 @@ if __name__ == "__main__":
         print(f"**Score** : {doc['score']:.4f}")
         print(f"**Contenu du chunk** :\n{doc['chunk_text']}\n")
         print("-" * 80)
+
+
+    question = "Propose une seule question pertinente à poser ? et dis-moi quelle ressources (Documentation , Logigramme , ...  ) tu as utilisés pour la choisir. "
+    response = retrieve_and_ask(top_docs, question)
+
+        
+
+
+
+   
