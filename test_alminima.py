@@ -163,13 +163,13 @@ if __name__ == "__main__":
 
     conversation_text = """
     "Allergologue : Bonjour, Monsieur. Je suis le Dr. Morel, allergologue. Que puis-je faire pour vous aujourd'hui ?\n"
-    "Patient : Bonjour, docteur. Depuis quelque temps, j’ai souvent une sensation de fatigue et des maux de tête. J’ai aussi le nez qui coule sans raison apparente.\n\n"
-    "Allergologue : Avez-vous remarqué si ces symptômes s’accentuent à certains moments de la journée ?\n"
-    "Patient : Oui, surtout en fin d’après-midi et parfois la nuit. Par contre, le matin, ça semble aller un peu mieux.\n\n"
-    "Allergologue : D’accord. Est-ce que vous ressentez une gêne respiratoire ou des douleurs au niveau de la poitrine ?\n"
-    "Patient : Pas de douleur, mais parfois j’ai l’impression de devoir respirer plus profondément, comme si l’air était plus lourd.\n\n"
-    "Allergologue : Avez-vous des antécédents d’allergies ou de problèmes respiratoires ?\n"
-    "Patient : Non, jamais eu d’allergies connues, mais mon frère a eu des crises d’asthme dans son enfance.\n\n"
+    "Patient : Bonjour, docteur. Depuis quelque temps, j'ai souvent une sensation de fatigue et des maux de tête. J'ai aussi le nez qui coule sans raison apparente.\n\n"
+    "Allergologue : Avez-vous remarqué si ces symptômes s'accentuent à certains moments de la journée ?\n"
+    "Patient : Oui, surtout en fin d'après-midi et parfois la nuit. Par contre, le matin, ça semble aller un peu mieux.\n\n"
+    "Allergologue : D'accord. Est-ce que vous ressentez une gêne respiratoire ou des douleurs au niveau de la poitrine ?\n"
+    "Patient : Pas de douleur, mais parfois j'ai l'impression de devoir respirer plus profondément, comme si l'air était plus lourd.\n\n"
+    "Allergologue : Avez-vous des antécédents d'allergies ou de problèmes respiratoires ?\n"
+    "Patient : Non, jamais eu d'allergies connues, mais mon frère a eu des crises d'asthme dans son enfance.\n\n"
     """
 
     # 🔹 Générer la query
