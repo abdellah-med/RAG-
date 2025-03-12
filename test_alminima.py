@@ -6,6 +6,7 @@ from qdrant_client import QdrantClient
 from qdrant_client.models import Distance, VectorParams, PointStruct
 from sentence_transformers import SentenceTransformer
 from agnooo import retrieve_and_ask
+from query_gen import generate_query
 
 # Chargement de MiniLM-L6
 model = SentenceTransformer("sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2")
@@ -83,7 +84,7 @@ def create_collection(client, collection_name, vector_size=384):
     print(f"✅ Collection '{collection_name}' créée.")
     return True
 
-def index_all_pdfs(client, collection_name, folder_path, taille_chunk=200, chevauchement=75, batch_size=50):
+def index_all_pdfs(client, collection_name, folder_path, taille_chunk=128, chevauchement=50, batch_size=50):
     """Indexe tous les PDFs d'un dossier dans Qdrant en découpant le texte en chunks."""
     pdf_files = [f for f in os.listdir(folder_path) if f.endswith(".pdf")]
     
@@ -158,16 +159,28 @@ if __name__ == "__main__":
     
     if should_index:
         index_all_pdfs(client, collection_name, "ALLERG_IA")
+
+
+    conversation_text = """
+    "Allergologue : Bonjour, Monsieur. Je suis le Dr. Morel, allergologue. Que puis-je faire pour vous aujourd'hui ?\n"
+    "Patient : Bonjour, docteur. Depuis quelque temps, j’ai souvent une sensation de fatigue et des maux de tête. J’ai aussi le nez qui coule sans raison apparente.\n\n"
+    "Allergologue : Avez-vous remarqué si ces symptômes s’accentuent à certains moments de la journée ?\n"
+    "Patient : Oui, surtout en fin d’après-midi et parfois la nuit. Par contre, le matin, ça semble aller un peu mieux.\n\n"
+    "Allergologue : D’accord. Est-ce que vous ressentez une gêne respiratoire ou des douleurs au niveau de la poitrine ?\n"
+    "Patient : Pas de douleur, mais parfois j’ai l’impression de devoir respirer plus profondément, comme si l’air était plus lourd.\n\n"
+    "Allergologue : Avez-vous des antécédents d’allergies ou de problèmes respiratoires ?\n"
+    "Patient : Non, jamais eu d’allergies connues, mais mon frère a eu des crises d’asthme dans son enfance.\n\n"
+    """
+
+    # 🔹 Générer la query
+    query = generate_query(conversation_text)
+
+    # 🔹 Afficher le résultat
+    print("🔎 Query générée :", query)    
     
-    query = f"Allergologue : Bonjour, Monsieur. Je suis le Dr. Martin, allergologue. Qu'est-ce qui vous amène aujourd'hui ?\n"
-    "Patient : Bonjour, docteur. Depuis plusieurs semaines, j'ai une toux persistante et le nez qui coule en permanence. J'ai aussi des démangeaisons aux yeux et parfois une sensation d'oppression dans la poitrine.\n\n"
-    "Allergologue : Je vois. Ces symptômes surviennent-ils toute l'année ou seulement à certaines périodes ?\n"
-    "Patient : Plutôt au printemps et en été, mais parfois aussi en hiver quand je suis à la maison.\n\n"
-    "Allergologue : D'accord. Avez-vous remarqué si ces symptômes s'aggravent en présence de certains éléments, comme la poussière, les animaux ou le pollen ?\n"
-    "Patient : Oui, quand je sors dans un parc ou que je suis proche d'arbres en fleurs, ça empire. Et à la maison, le matin en me réveillant, j'ai souvent le nez bouché.\n\n"
+
     top_docs = get_similar_documents(client, collection_name, query, 5)
     
-    print("\n🔍 **Résultats de la recherche** 🔍\n")
     for doc in top_docs:
         print(f"**Fichier** : {doc['file_name']}")
         print(f"**Chunk** : {doc['chunk_number']}")
@@ -176,11 +189,28 @@ if __name__ == "__main__":
         print("-" * 80)
 
 
-    question = "Propose une seule question pertinente à poser ? et dis-moi quelle ressources (Documentation , Logigramme , ...  ) tu as utilisés pour la choisir. "
-    response = retrieve_and_ask(top_docs, question)
+     # Filter documents with score > 0.75
+    filtered_docs = [doc for doc in top_docs if doc['score'] > 0.70]
 
+    
         
 
+       
+    if not filtered_docs:
+        print("\n❌ Aucun document avec un score > 0.75")
+        response = "aucun document"
+            
 
+        # Only ask question if we have valid documents
+    question = "Propose une seule question pertinente à poser ? et dis-moi quelle ressources (Documentation , Logigramme , ...  ) tu as utilisés pour la choisir. "
+        
+        # Pass "aucun document" to retrieve_and_ask when no valid documents found
+    if not filtered_docs:
+        response = retrieve_and_ask([{"chunk_text": "aucun document"}], question)
+    else:
+            response = retrieve_and_ask(filtered_docs, question)
 
-   
+    print(response)
+
+    
+

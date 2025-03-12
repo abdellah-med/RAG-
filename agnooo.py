@@ -1,9 +1,12 @@
 from agno.agent import Agent
 from agno.models.groq import Groq
+from dotenv import load_dotenv
 import os
 
+load_dotenv()
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+
 # Création de l'agent au moment où le fichier est importé
-GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
 if not GROQ_API_KEY:
     raise ValueError("La clé API GROQ_API_KEY n'est pas définie dans les variables d'environnement.")
 
@@ -12,9 +15,9 @@ agent = Agent(
     model=Groq(id="qwen-2.5-32b", api_key=GROQ_API_KEY),
     description="Tu es un assistant médical spécialisé en allergologie respiratoire.",
     instructions=[
-    "Lis attentivement le logaligramme.",
+    "Lis attentivement le Logigramme.",
     "Analyse la discussion entre le médecin et le patient.",
-    "Prends en compte le contexte pour mieux comprendre les symptômes et les antécédents.",
+    "Prends en compte la documentation pour mieux comprendre les symptômes et les antécédents.",
     "Propose une seule question pertinente à poser au patient en fonction des informations disponibles."
     ], 
     markdown=True
