@@ -3,5 +3,5 @@ Corpus/
 mon_env/
 
 
-git config --global user.email "abdellahmedles022@gmail.com"
-git config --global user.name "abdellah-med"
+
+.env
