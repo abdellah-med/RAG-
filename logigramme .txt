@@ -1,23 +1,79 @@
-from indexall_minilm import (
-    connect_to_qdrant,
-    create_collection,
-    index_all_pdfs,
-    get_similar_documents
-)
-from query_gen import generate_query
-from agnooo import retrieve_and_ask
+logigramme = """    
+### 1. Chronologie   
+{  
+  "début": "Quand avez-vous remarqué les premiers symptômes ? (Mois/Année)",  
+  "fréquence": ["Quotidienne", "Hebdomadaire", "Saisonnière"],  
+  "saison": {"printemps", "été", "automne", "hiver"},  
+  "repos": "Symptômes améliorés en vacances ? Oui/Non"  
+}  
+
+### 2. Symptômes 
+{  
+  "nez": ["Obstruction nasale", "Éternuements en salves", "Prurit nasal"],  
+  "yeux": ["Démangeaisons oculaires", "Larmoiement persistant"],  
+  "respiration": {  
+    "sifflements": "Nuit/Jour",  
+    "toux": ["Nocturne", "À l'effort", "Après rire"]  
+  },  
+  "alerte": ["Œdème facial", "Difficulté à avaler"]  
+}  
+
+### 3. Environnement  
+{  
+  "domestique": {  
+    "animaux": "Contact <72h ?",  
+    "literie": ["Âge >5 ans", "Oreillers plume"],  
+    "humidité": "Moiteur visible ?"  
+  },  
+  "professionnel": {  
+    "secteur": ["Agriculture", "Santé", "BTP"],  
+    "produits": "Manipulation produits chimiques ?"  
+  }  
+}  
+
+### 4. Antécédents  
+{  
+  "traitements": ["Antihistaminiques", "Ventoline", "Désensibilisation"],  
+  "familiaux": "Allergies/asthme chez parents ?"  
+}  
+
+### 5. Matrice de Dérivation LLM  
+{  
+  "trigger_words": {  
+    "nuit": ["literie", "acariens", "toux nocturne"],  
+    "extérieur": ["pollen", "jardinage", "vent"],  
+    "profession": ["exposition", "masque", "symptômes en semaine"]  
+  },  
+  "exemples_sortie": {  
+    "cas_1": "Patient + 'chat' → 'Avez-vous eu un contact rapproché (câlins) récemment ?'",  
+    "cas_2": "Patient + 'printemps' → 'Êtes-vous gêné en tondant la pelouse ?'"  
+  }  
+}  
+
+**Consignes  :**  
+1. Prioriser les questions non couvertes dans le flux actuel  
+2. Croiser les réponses avec la matrice de dérivation  
+3. Éviter les redondances (ex: ne pas redemander 'animaux' si déjà confirmé)  
+4. Formuler des questions ouvertes (Pas de Oui/Non)  
+5. Adapter le vocabulaire au niveau patient  
+"""  
 
 
-if __name__ == "__main__":
-    collection_name = "corpus_a"
-    client = connect_to_qdrant()
 
-    should_index = create_collection(client, collection_name, 384)  # Taille des embeddings MiniLM-L6
 
-    if should_index:
-        index_all_pdfs(client, collection_name, "ALLERG_IA")
 
-    conversation_text = """    
+
+
+
+
+
+
+
+
+
+
+
+
     Allergologue : Bonjour Mme Dubois, je suis le Dr Martin. Comment allez-vous aujourd'hui ?
     Patient : Bonjour Docteur… Franchement, pas terrible. Ces éternuements et cette toux me rendent folle.
     Allergologue : Pourriez-vous me préciser si ces symptômes surviennent plutôt à une période spécifique de l'année, ou s'ils sont présents toute l'année ? 
@@ -55,39 +111,3 @@ if __name__ == "__main__":
     Patient : Je n’ai jamais vraiment fait attention… Peut-être un peu, mais pas de façon flagrante.
     allergologue : Avez-vous déjà utilisé un déshumidificateur d'air, que ce soit dans votre chambre, votre salle de bain ou votre salon, et si oui, avez-vous constaté une différence au niveau de vos symptômes ?"  
     Patient : Non, jamais essayé… Vous pensez que ça pourrait aider ?
-    """
-    
-   
-    # 🔹 Générer la query
-    query = generate_query(conversation_text)
-
-    # 🔹 Afficher le résultat
-    print("🔎 Query générée :", query)
-
-    top_docs = get_similar_documents(client, collection_name, query, 5)
-
-    for doc in top_docs:
-        print(f"**Fichier** : {doc['file_name']}")
-        print(f"**Chunk** : {doc['chunk_number']}")
-        print(f"**Score** : {doc['score']:.4f}")
-        print(f"**Contenu du chunk** :\n{doc['chunk_text']}\n")
-        print("-" * 80)
-
-    # Filtrer les documents avec un score > 0.70
-    filtered_docs = [doc for doc in top_docs if doc['score'] > 0.70]
-
-    if not filtered_docs:
-        print("\n❌ Aucun document avec un score > 0.70")
-        response = "aucun document"
-
-
-    question = "Propose une seule question pertinente à poser selon les informations et la discussion ? et dis-moi quelle ressources (Documentation , Logigramme , ...  ) tu as utilisés pour la choisir. "
-        
-        # Pass "aucun document" to retrieve_and_ask when no valid documents found
-    if not filtered_docs:
-        response = retrieve_and_ask([{"chunk_text": "aucun document"}], question, conversation_text )
-    else:
-            response = retrieve_and_ask(filtered_docs, question,conversation_text)
-
-    
-
