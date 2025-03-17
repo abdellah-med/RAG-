@@ -13,7 +13,7 @@ if not GEMINI_API_KEY:
 
 # Création de l'agent avec le modèle Gemini et contrôle de la température
 agent = Agent(
-    model=Gemini(id="gemini-1.5-pro-latest", api_key=GEMINI_API_KEY, temperature=0.7),
+    model=Gemini(id="gemini-1.5-flash-latest", api_key=GEMINI_API_KEY, temperature=0.7),
     description="Tu es un assistant médical spécialisé en allergologie respiratoire.",
     instructions=[
         "Lis attentivement le Logigramme.",
@@ -81,11 +81,12 @@ def retrieve_and_ask(top_docs, question, conversation_text):
         return "Aucun document trouvé pour répondre à la question."
     
     retrieved_texts = "\n\n".join([doc["chunk_text"] for doc in top_docs])
-    response = agent.print_response(
+    # Utiliser agent.ask() au lieu de agent.print_response()
+    response = agent.run(
         f"le Logigramme : {logigramme}\n\n"
         f"Documentation : {retrieved_texts}\n\n"
         f"Discussion : {conversation_text}\n\n"
         f"Question : {question}"
     )
     
-    return response
+    return response.content
