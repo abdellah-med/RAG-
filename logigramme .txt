@@ -59,6 +59,26 @@ logigramme = """
 """  
 
 
+****************************************************************************************************************************************************
+    
+    """
+    Allergologue : Bonjour, qu’est-ce qui vous amène aujourd’hui ?
+    Patiente : Bonjour, docteur. Je viens vous voir parce que depuis quelque temps, j’ai des difficultés à respirer. Par moments, j’ai une sensation d’oppression dans la poitrine, et ça arrive surtout le matin… Je ne sais pas trop pourquoi.
+    Allergologue : ourriez-vous me décrire plus précisément la nature de vos difficultés respiratoires matinales ? S'agit-il d'une sensation d'oppression, d'essoufflement, de sifflements, de toux ?  Ressentez-vous également des symptômes au niveau du nez, des yeux ou de la gorge, comme des démangeaisons, des écoulements ou des éternuements ? 
+    Patiente : Au niveau du nez et des yeux… hmm… maintenant que vous le dites, il m’arrive d’avoir le nez un peu bouché le matin, mais ce n’est pas toujours le cas. Par contre, pas vraiment d’éternuements ni de démangeaisons particulières.
+    Allergologue : Pourriez-vous décrire l'état de votre literie (âge du matelas, type d'oreiller, fréquence de lavage...) et me dire si vous avez des animaux domestiques à la maison  ?  
+    patiente : Mon matelas n’est pas très vieux, je l’ai changé il y a environ deux ans. J’ai un oreiller en mousse, et je change mes draps toutes les deux semaines environ.
+               Non, je n’ai pas d’animaux à la maison, je n’ai jamais eu de problème avec ça. Mais… enfin… je ne pense pas que ça vienne de ma literie, parce que mes symptômes ne sont pas présents quand je vais me coucher, c’est plutôt après le réveil, quand je commence ma journée.
+    allergologue: Votre chambre est-elle exposée à l'humidité ou à des moisissures visibles, par exemple sur les murs ou autour des fenêtres ?  
+    Partinente : Non, je ne pense pas. Ma chambre est plutôt bien ventilée, et je n’ai jamais remarqué de traces de moisissures sur les murs ou autour des fenêtres.
+                 D’ailleurs, je n’ai pas vraiment ces problèmes de respiration quand je passe du temps dans ma chambre… C’est surtout le matin, après ma douche, que je ressens cette gêne.           
+    allergologue : Utilisez-vous des produits spécifiques, comme des parfums d'ambiance, des bougies parfumées, de l'encens ou des produits d'entretien, le matin ou dans votre salle de bain ?
+    Patiente : Hmm… Non, pas vraiment. Je n’utilise pas d’encens ni de bougies parfumées. Pour le ménage, je passe un coup rapide dans la salle de bain, mais ce n’est pas tous les jours, et je ne pense pas que ça coïncide avec mes symptômes , mais j'utilise un Gel douche , shampoing assez souvent 
+    allergologue : Pourriez-vous me lister précisément tous les produits que vous utilisez pour votre douche (gel douche, shampoing, après-shampoing, savon, etc.), ainsi que leur marque et si possible leur composition ?
+    patiente : Oui bien sûr… Alors, pour la douche, j’utilise un gel douche que j’ai acheté en parapharmacie, c’est une marque connue, je crois qu’il est censé être « hypoallergénique ». Ensuite, j’ai un shampoing et un après-shampoing, mais je les utilise seulement tous les deux ou trois jours, et mes problèmes respiratoires sont présents tous les matins, donc je ne pense pas que ce soit ça. 
+    Je peux regarder la composition du gel douche si vous voulez… Mais il y a plein de noms compliqués, je ne suis pas sûre de tout comprendre.
+
+    """
 
 
 
@@ -69,10 +89,7 @@ logigramme = """
 
 
 
-
-
-
-
+***************************************************************************************************************************************************************************************
 
     Allergologue : Bonjour Mme Dubois, je suis le Dr Martin. Comment allez-vous aujourd'hui ?
     Patient : Bonjour Docteur… Franchement, pas terrible. Ces éternuements et cette toux me rendent folle.
@@ -111,3 +128,53 @@ logigramme = """
     Patient : Je n’ai jamais vraiment fait attention… Peut-être un peu, mais pas de façon flagrante.
     allergologue : Avez-vous déjà utilisé un déshumidificateur d'air, que ce soit dans votre chambre, votre salle de bain ou votre salon, et si oui, avez-vous constaté une différence au niveau de vos symptômes ?"  
     Patient : Non, jamais essayé… Vous pensez que ça pourrait aider ?
+
+
+*********************************************************************************************************************************************
+    
+    
+    Allergologue : Bonjour, qu’est-ce qui vous amène aujourd’hui ?
+    Patiente : Je… je sais pas trop, je tousse souvent, et parfois j’ai du mal à respirer.
+    allergologue : Depuis combien de temps avez-vous cette toux et ces difficultés respiratoires, et y a-t-il des moments où elles sont plus prononcées, par exemple la nuit, pendant l'effort, ou à une période particulière de l'année ?     
+    patiente : Hmm… ça fait un moment, c'est pas tout le temps… parfois ça vient d’un coup.
+    allergologue : Ressentez-vous des démangeaisons ou des picotements au niveau du nez, des yeux ou de la gorge, en plus de votre toux et de vos difficultés respiratoires ? 
+    patiente :  Oui… un peu, des fois les yeux qui piquent… mais pas toujours.
+    allergologue : Votre travail implique-t-il l'utilisation régulière de produits de nettoyage, désinfectants, ou d'autres produits chimiques?       
+    patiente : Non… juste mes affaires habituelles.
+    allergologue : Avez-vous remarqué si vos symptômes respiratoires s'aggravent dans des environnements spécifiques, comme votre chambre à coucher, en présence d'animaux ou en contact avec de la poussière ?
+    Patiente : Je sais pas trop… peut-être chez moi, mais pas tout le temps.
+    allergologue : Pourriez-vous décrire plus précisément l'intérieur de votre logement, notamment en ce qui concerne la présence de moquette, de tapis, de rideaux épais, d'humidité, ou encore le type de chauffage utilisé ?    
+    Patiente : Y a des rideaux… un tapis dans le salon… chauffage normal, je crois.
+    allergolgoue : Votre toux et vos difficultés respiratoires surviennent-elles plus fréquemment après une activité physique, un stress émotionnel important, ou lors de changements brusques de température ?
+    patiente : Pas vraiment… c’est pas lié à ça je pense.
+    allergologue : Avez-vous des animaux domestiques à la maison, et si oui, lesquels ?
+    Patiente : Non, j’en ai pas. 
+    allergologue : Pourriez-vous me décrire la fréquence et l'intensité de vos symptômes lorsque vous êtes en vacances, loin de votre domicile, pendant une période prolongée (plus d'une semaine par exemple) 
+    Patiente : Je sais pas trop… peut-être un peu moins, mais j’y fais pas vraiment attention.
+    allergologue : Vos symptômes (toux, difficultés respiratoires, picotements des yeux) s'améliorent-ils lorsque vous aérez régulièrement votre logement, notamment le salon où se trouve le tapis ?
+    Patiente : Je crois… un peu, mais pas toujours.
+    allergologue : Pourriez-vous me décrire l'état général de votre tapis, notamment son ancienneté, sa matière, et la fréquence à laquelle vous le nettoyez (aspirateur, shampoing, etc.) ? 
+    Patiente : Je l’ai depuis longtemps… je passe l’aspirateur, mais pas trop souvent.
+    allergologue : Avez-vous remarqué si vos symptômes ont tendance à s'aggraver lorsque vous êtes dans votre salon, en particulier à proximité du tapis  
+    Patiente : Je sais pas… peut-être, mais j’y fais pas trop attention.
+    allergologue : Ressentez-vous une différence au niveau de vos symptômes respiratoires entre le moment où vous venez d'aspirer votre tapis et quelques jours plus tard ? 
+    Patiente : Pas vraiment… ça change pas trop je crois.
+    Allergologue : Avez-vous déjà observé la présence de moisissures visibles (taches noires, vertes, ou grises) sur les murs, le plafond, ou autour des fenêtres de votre logement, et plus particulièrement dans votre salon ?
+    patiente : Non, j’ai jamais vu de taches comme ça chez moi.
+    allergolgoue : Ressentez-vous des symptômes similaires (toux, difficultés respiratoires, picotements des yeux) lorsque vous êtes en contact avec d'autres types de textiles épais ou poussiéreux, comme des rideaux, des couvertures, des peluches, ou des vêtements rangés depuis longtemps ?
+    patiente :  Non, je crois pas… ça arrive pas vraiment avec ça.
+    allergologue : Pourriez-vous me préciser la matière de votre tapis (laine, synthétique, etc.) et s'il a une sous-couche ? 
+    Patiente : Je sais pas trop… il est doux, mais je connais pas la matière.
+    allergologue : Utilisez-vous des produits d'entretien, en spray ou autre, pour nettoyer votre tapis, et si oui, lesquels et à quelle fréquence ? 
+    Patiente : Non, pas vraiment… juste l’aspirateur.
+    allergologue : Pourriez-vous me dire si vos symptômes s'améliorent lorsque vous êtes à l'extérieur de votre domicile pendant plusieurs jours, par exemple en week-end ou en vacances ? 
+    Patiente : Je sais pas trop… peut-être un peu, mais j’y fais pas vraiment attention.
+    allergologue : Votre tapis est-il épais et difficile à déplacer, et si oui, depuis combien de temps ne l'avez-vous pas déplacé pour nettoyer en dessous ?
+    Patiente : Il est pas très épais… je le bouge pas souvent, mais je pense pas que ça vienne de là.
+    allergologue : Quand avez-vous lavé ou fait nettoyer votre tapis en profondeur (shampoing, nettoyage à vapeur, etc.) pour la dernière fois ?" 
+    Patiente : Je l’ai jamais vraiment nettoyé comme ça, juste l’aspirateur de temps en temps. 
+    allergologue : Votre toux et vos difficultés respiratoires sont-elles plus importantes le matin au réveil, et si oui, est-ce que cela s'améliore après vous être levé et aéré la pièce ? 
+    Patiente : Pas vraiment… c’est pas forcément pire le matin, ça vient un peu n’importe quand.
+
+
+***************************************************************************************************************************************************************************************************************************

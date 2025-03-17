@@ -8,7 +8,7 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 # Configuration de l'API Gemini
 configure(api_key=GEMINI_API_KEY)
 
-model = GenerativeModel("gemini-1.5-pro-latest")
+model = GenerativeModel("gemini-1.5-flash-latest")
 
 def generate_query(conversation_text):
     prompt = f"""

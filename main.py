@@ -17,44 +17,19 @@ if __name__ == "__main__":
     if should_index:
         index_all_pdfs(client, collection_name, "ALLERG_IA")
 
-    conversation_text = """    
-    Allergologue : Bonjour Mme Dubois, je suis le Dr Martin. Comment allez-vous aujourd'hui ?
-    Patient : Bonjour Docteur… Franchement, pas terrible. Ces éternuements et cette toux me rendent folle.
-    Allergologue : Pourriez-vous me préciser si ces symptômes surviennent plutôt à une période spécifique de l'année, ou s'ils sont présents toute l'année ? 
-    Patient : Hmm… je dirais que c’est pire au printemps, mais pas seulement.
-    Allergologue : Pourriez-vous décrire plus précisément la nature de votre toux (sèche, grasse,  nocturne, diurne) et si elle est accompagnée de sifflements ou de gêne respiratoire,  notamment lors d'efforts ou de fous rires ?  
-    Patient : Euh… Je sais pas trop… Ça vient et ça repart
-    Allergologue : Ressentez-vous des démangeaisons ou des picotements au niveau du nez, des yeux ou de la gorge, en plus de vos éternuements et de votre toux ?
-    Patient : Parfois, un peu au niveau des yeux…
-    allergologue : Avez-vous des animaux domestiques à la maison, ou êtes-vous régulièrement en contact avec des animaux ?
-    Patient : Non, pas vraiment…
-    allergologue : Votre logement présente-t-il des signes d'humidité, et quel est le type de sol (moquette, carrelage, parquet…) ? 
-                   Pouvez-vous également me décrire l'état de votre literie (âge du matelas, type d'oreiller…) ?"   
-    Patient : Je dirais qu’il y a un peu d’humidité dans la salle de bain, mais sinon, je vois rien de spécial. Mon matelas, ça fait des années que je l'ai, et j'ai des oreillers en plumes, je crois.        
-    allergologue : Avez-vous remarqué si vos symptômes s'aggravent dans certaines pièces de votre logement, comme la salle de bain par exemple, ou lorsque vous manipulez votre literie ?
-    patient : Hmm… Peut-être un peu plus dans la chambre, surtout le matin.   
-    allergologue :   Avez-vous déjà envisagé ou testé des housses anti-acariens pour votre matelas et vos oreillers ?" 
-    patient: Non, jamais essayé… Ça pourrait aider ?  
-    allergologue : En plus du printemps, vos symptômes s'aggravent-ils après avoir aéré votre literie ou après une longue période sans aérer votre chambre ?
-    patient :  Maintenant que vous le dites… J’ai l’impression que c’est pire quand je reste longtemps sans aérer.   ,
-    allegologue : Êtes-vous exposée à des moisissures dans votre environnement, que ce soit à votre domicile (autres pièces que la salle de bain) ou sur votre lieu de travail ?
-    patient : Pas que je sache… Peut-être un peu dans un coin du salon, mais rien de flagrant.
-    allergologue : Pourriez-vous me décrire la nature de l'écoulement nasal (clair, épais, couleur) et sa fréquence, notamment au réveil et  au printemps ?
-    patient : C'est plutôt clair, et ça coule surtout le matin… Au printemps, c’est presque tous les jours.  
-    allergologue : Ressentez-vous une amélioration de vos symptômes lorsque vous êtes en vacances, notamment en altitude ou dans un  environnement sec et aéré ?  
-    Patient : Oui, en général ça va mieux quand je suis à la montagne ou au bord de la mer.
-    allergologue : Avez-vous déjà réalisé des tests allergologiques, notamment pour les acariens, les moisissures et les pollens de graminées ?"  
-    patient : Non, jamais… Vous pensez que ce serait utile ?
-    allergologue : avez-vous remarqué si vos symptômes s'améliorent lorsque vous êtes loin de chez vous pendant une période prolongée, par  exemple plus d'une semaine  ? 
-    Patient : Oui, je crois… Quand je pars plusieurs jours, surtout ailleurs qu’en ville, ça va un peu mieux.
-    allergologue : Ressentez-vous une différence dans l'intensité de vos symptômes entre le début et la fin de la semaine, notamment si vous travaillez à l'extérieur de votre domicile ?
-    Patient : Maintenant que j’y pense… Oui, c’est souvent pire en début de semaine, après le week-end à la maison.
-    allergologue : Votre literie est composée de quel type de matériaux (matelas, sommier, oreillers, couvertures) ?.
-    patient : Mon matelas est en mousse, le sommier est à lattes. J’ai des oreillers en plumes et une couette synthétique.
-    allergologue : Vos symptômes s'améliorent-ils lorsque vous lavez vos draps et vos taies d'oreiller à haute température (60°C) ?"
-    Patient : Je n’ai jamais vraiment fait attention… Peut-être un peu, mais pas de façon flagrante.
-    allergologue : Avez-vous déjà utilisé un déshumidificateur d'air, que ce soit dans votre chambre, votre salle de bain ou votre salon, et si oui, avez-vous constaté une différence au niveau de vos symptômes ?"  
-    Patient : Non, jamais essayé… Vous pensez que ça pourrait aider ?
+    conversation_text = """ 
+
+    Allergologue : Bonjour, qu’est-ce qui vous amène aujourd’hui ?
+    Patiente : Bonjour, docteur. Je viens vous voir parce que depuis quelque temps, j’ai des difficultés à respirer. Par moments, j’ai une sensation d’oppression dans la poitrine, et ça arrive surtout le matin… Je ne sais pas trop pourquoi.
+    Allergologue : ourriez-vous me décrire plus précisément la nature de vos difficultés respiratoires matinales ? S'agit-il d'une sensation d'oppression, d'essoufflement, de sifflements, de toux ?  Ressentez-vous également des symptômes au niveau du nez, des yeux ou de la gorge, comme des démangeaisons, des écoulements ou des éternuements ? 
+    Patiente : Au niveau du nez et des yeux… hmm… maintenant que vous le dites, il m’arrive d’avoir le nez un peu bouché le matin, mais ce n’est pas toujours le cas. Par contre, pas vraiment d’éternuements ni de démangeaisons particulières.
+    allergologue : Pourriez-vous me décrire plus précisément la nature de vos difficultés respiratoires matinales ? S'agit-il d'une sensation d'oppression, d'essoufflement, de sifflements, de toux ?  Ressentez-vous également des symptômes au niveau du nez, des yeux ou de la gorge, comme des démangeaisons, des écoulements ou des éternuements ? 
+    patiente : Mon matelas n’est pas très vieux, je l’ai changé il y a environ deux ans. J’ai un oreiller en mousse, et je change mes draps toutes les deux semaines environ.
+               Non, je n’ai pas d’animaux à la maison, je n’ai jamais eu de problème avec ça. Mais… enfin… je ne pense pas que ça vienne de ma literie, parce que mes symptômes ne sont pas présents quand je vais me coucher, c’est plutôt après le réveil, quand je commence ma journée.
+    allergologue: Votre chambre est-elle exposée à l'humidité ou à des moisissures visibles, par exemple sur les murs ou autour des fenêtres ?  
+    Partinente : Non, je ne pense pas. Ma chambre est plutôt bien ventilée, et je n’ai jamais remarqué de traces de moisissures sur les murs ou autour des fenêtres.
+                 D’ailleurs, je n’ai pas vraiment ces problèmes de respiration quand je passe du temps dans ma chambre… C’est surtout le matin, après ma douche, que je ressens cette gêne.           
+    
     """
     
    
@@ -76,18 +51,18 @@ if __name__ == "__main__":
     # Filtrer les documents avec un score > 0.70
     filtered_docs = [doc for doc in top_docs if doc['score'] > 0.70]
 
-    if not filtered_docs:
-        print("\n❌ Aucun document avec un score > 0.70")
-        response = "aucun document"
 
 
-    question = "Propose une seule question pertinente à poser selon les informations et la discussion ? et dis-moi quelle ressources (Documentation , Logigramme , ...  ) tu as utilisés pour la choisir. "
+    question = "Propose une seule question pertinente à poser selon les informations et la discussion, comme si elle était posée par le médecin. Explique également quelles ressources (Documentation, Logigramme, etc.) tu as utilisées pour choisir cette question. "
         
         # Pass "aucun document" to retrieve_and_ask when no valid documents found
     if not filtered_docs:
         response = retrieve_and_ask([{"chunk_text": "aucun document"}], question, conversation_text )
     else:
-            response = retrieve_and_ask(filtered_docs, question,conversation_text)
+        response = retrieve_and_ask(filtered_docs, question,conversation_text)
+     
 
+
+    print(response)
     
 
