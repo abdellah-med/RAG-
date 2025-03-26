@@ -13,7 +13,7 @@ if not GEMINI_API_KEY:
 
 # Création de l'agent avec le modèle Gemini et contrôle de la température
 agent = Agent(
-    model=Gemini(id="gemini-1.5-flash-latest", api_key=GEMINI_API_KEY, temperature=0.7),
+    model=Gemini(id="gemini-2.0-flash", api_key=GEMINI_API_KEY, temperature=0.7),
     description="Tu es un assistant médical spécialisé en allergologie respiratoire.",
     instructions=[
         "Lis attentivement le Logigramme.",
