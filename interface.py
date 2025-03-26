@@ -1,4 +1,9 @@
 import streamlit as st
+from streamlit import config
+
+# Désactiver le file watcher pour éviter les conflits avec PyTorch
+config.set_option("server.fileWatcherType", "none")
+
 from indexall_minilm import (
     connect_to_qdrant,
     create_collection,
@@ -10,6 +15,8 @@ from agnooo import retrieve_and_ask
 import pandas as pd
 import time
 from datetime import datetime
+# Importer la fonction d'évaluation
+from should_ask import evaluer_recommandation
 
 # Configuration de la page
 st.set_page_config(
@@ -102,6 +109,22 @@ st.markdown("""
         padding-top: 0.5rem;
         border-top: 2px solid #dee2e6;
     }
+    .warning-box {
+        background-color: #fff3cd;
+        border: 1px solid #ffeeba;
+        border-radius: 10px;
+        padding: 1.5rem;
+        margin-top: 1rem;
+        color: #856404;
+    }
+    .success-box {
+        background-color: #d4edda;
+        border: 1px solid #c3e6cb;
+        border-radius: 10px;
+        padding: 1.5rem;
+        margin-top: 1rem;
+        color: #155724;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -179,6 +202,7 @@ with tab1:
             # Initialiser les temps pour chaque étape
             timings = {
                 "start_time": time.time(),
+                "evaluation_time": 0,
                 "query_generation_time": 0,
                 "document_retrieval_time": 0,
                 "response_generation_time": 0,
@@ -191,89 +215,129 @@ with tab1:
             with results_container:
                 st.markdown('<div class="subheader">📊 Résultats de l\'analyse</div>', unsafe_allow_html=True)
                 
-                # Générer la query et mesurer le temps
-                query_start = time.time()
-                with st.spinner("Génération de la requête..."):
-                    query = generate_query(discussion_text)
-                timings["query_generation_time"] = time.time() - query_start
+                # Évaluer la qualité de la discussion
+                eval_start = time.time()
+                with st.spinner("Évaluation de la qualité de la discussion..."):
+                    # Contexte vide pour l'instant, peut être adapté si nécessaire
+                    evaluation_result = evaluer_recommandation(discussion_text, "")
+                timings["evaluation_time"] = time.time() - eval_start
                 
-                # Afficher la requête générée dans un expander
-                with st.expander("🔎 Requête générée"):
-                    st.info(query)
-                
-                # Récupérer les documents similaires et mesurer le temps
-                docs_start = time.time()
-                with st.spinner("Recherche de documents pertinents..."):
-                    top_docs = get_similar_documents(client, collection_name, query, num_results)
-                timings["document_retrieval_time"] = time.time() - docs_start
-                
-                # Filtrer les documents avec un score > seuil
-                filtered_docs = [doc for doc in top_docs if doc['score'] > threshold]
-                
-                # Affichage des documents récupérés dans un tableau
-                if top_docs:
-                    st.markdown('<div class="subheader">📚 Documents pertinents trouvés</div>', unsafe_allow_html=True)
+                # Afficher le résultat de l'évaluation
+                if evaluation_result == "oui":
+                    st.markdown(f"""
+                    <div class="success-box">
+                        <h3>✅ Discussion de qualité</h3>
+                        <p>La discussion contient des informations pertinentes et détaillées sur les symptômes respiratoires. 
+                        Nous allons procéder à l'analyse approfondie.</p>
+                    </div>
+                    """, unsafe_allow_html=True)
                     
-                    # Créer un DataFrame pour afficher les résultats de manière plus organisée
-                    docs_df = pd.DataFrame([
-                        {
-                            "Fichier": doc['file_name'],
-                            "Score": f"{doc['score']:.2f}",
-                            "Pertinent": "✅" if doc['score'] > threshold else "❌"
-                        } for doc in top_docs
-                    ])
+                    # Générer la query et mesurer le temps
+                    query_start = time.time()
+                    with st.spinner("Génération de la requête..."):
+                        query = generate_query(discussion_text)
+                    timings["query_generation_time"] = time.time() - query_start
                     
-                    st.dataframe(docs_df, use_container_width=True)
+                    # Afficher la requête générée dans un expander
+                    with st.expander("🔎 Requête générée"):
+                        st.info(query)
                     
-                    # Afficher le contenu des documents dans des expanders
-                    for i, doc in enumerate(top_docs):
-                        with st.expander(f"Document {i+1}: {doc['file_name']} (Score: {doc['score']:.2f})"):
-                            st.markdown(f"""
-                            <div class="doc-card">
-                                <p><strong>Fichier:</strong> {doc['file_name']}</p>
-                                <p><strong>Chunk:</strong> {doc['chunk_number']}</p>
-                                <p><strong>Score:</strong> {doc['score']:.4f}</p>
-                                <hr>
-                                <p><strong>Contenu:</strong></p>
-                                <pre style="white-space: pre-wrap;">{doc['chunk_text']}</pre>
-                            </div>
-                            """, unsafe_allow_html=True)
-                else:
-                    st.warning("⚠️ Aucun document similaire n'a été trouvé.")
-                
-                # Générer la réponse et mesurer le temps
-                response_start = time.time()
-                with st.spinner("Génération de la suggestion..."):
-                    question = (
-                        "Propose une seule question pertinente à poser selon les informations et la discussion, "
-                        "comme si elle était posée par le médecin. Explique également quelles ressources (Documentation, Logigramme, etc.) "
-                        "tu as utilisées pour choisir cette question."
-                    )
+                    # Récupérer les documents similaires et mesurer le temps
+                    docs_start = time.time()
+                    with st.spinner("Recherche de documents pertinents..."):
+                        top_docs = get_similar_documents(client, collection_name, query, num_results)
+                    timings["document_retrieval_time"] = time.time() - docs_start
                     
-                    if not filtered_docs:
-                        st.warning("❌ Aucun document ne dépasse le seuil de pertinence minimum.")
-                        response = retrieve_and_ask([{"chunk_text": "aucun document"}], question, discussion_text)
+                    # Filtrer les documents avec un score > seuil
+                    filtered_docs = [doc for doc in top_docs if doc['score'] > threshold]
+                    
+                    # Affichage des documents récupérés dans un tableau
+                    if top_docs:
+                        st.markdown('<div class="subheader">📚 Documents pertinents trouvés</div>', unsafe_allow_html=True)
+                        
+                        # Créer un DataFrame pour afficher les résultats de manière plus organisée
+                        docs_df = pd.DataFrame([
+                            {
+                                "Fichier": doc['file_name'],
+                                "Score": f"{doc['score']:.2f}",
+                                "Pertinent": "✅" if doc['score'] > threshold else "❌"
+                            } for doc in top_docs
+                        ])
+                        
+                        st.dataframe(docs_df, use_container_width=True)
+                        
+                        # Afficher le contenu des documents dans des expanders
+                        for i, doc in enumerate(top_docs):
+                            with st.expander(f"Document {i+1}: {doc['file_name']} (Score: {doc['score']:.2f})"):
+                                st.markdown(f"""
+                                <div class="doc-card">
+                                    <p><strong>Fichier:</strong> {doc['file_name']}</p>
+                                    <p><strong>Chunk:</strong> {doc['chunk_number']}</p>
+                                    <p><strong>Score:</strong> {doc['score']:.4f}</p>
+                                    <hr>
+                                    <p><strong>Contenu:</strong></p>
+                                    <pre style="white-space: pre-wrap;">{doc['chunk_text']}</pre>
+                                </div>
+                                """, unsafe_allow_html=True)
                     else:
-                        response = retrieve_and_ask(filtered_docs, question, discussion_text)
-                timings["response_generation_time"] = time.time() - response_start
+                        st.warning("⚠️ Aucun document similaire n'a été trouvé.")
+                    
+                    # Générer la réponse et mesurer le temps
+                    response_start = time.time()
+                    with st.spinner("Génération de la suggestion..."):
+                        question = (
+                            "Propose une seule question pertinente à poser selon les informations et la discussion, "
+                            "comme si elle était posée par le médecin. Explique également quelles ressources (Documentation, Logigramme, etc.) "
+                            "tu as utilisées pour choisir cette question."
+                        )
+                        
+                        if not filtered_docs:
+                            st.warning("❌ Aucun document ne dépasse le seuil de pertinence minimum.")
+                            response = retrieve_and_ask([{"chunk_text": "aucun document"}], question, discussion_text)
+                        else:
+                            response = retrieve_and_ask(filtered_docs, question, discussion_text)
+                    timings["response_generation_time"] = time.time() - response_start
+                    
+                    # Afficher la réponse générée
+                    st.markdown('<div class="subheader">💡 Suggestion de l\'IA</div>', unsafe_allow_html=True)
+                    st.markdown(f'<div class="recommendation-box">{response}</div>', unsafe_allow_html=True)
+                    
+                else:  # Si evaluation_result == "non"
+                    st.markdown(f"""
+                    <div class="warning-box">
+                        <h3>⚠️ Qualité de discussion insuffisante</h3>
+                        <p>La discussion ne contient pas suffisamment d'informations précises sur les symptômes respiratoires. 
+                        Nous vous recommandons de recueillir plus d'informations sur :</p>
+                        <ul>
+                            <li>La nature exacte des symptômes respiratoires (toux, essoufflement, sifflements, etc.)</li>
+                            <li>La contextualisation temporelle des crises/symptômes</li>
+                            <li>Des données quantitatives sur la fréquence, durée et intensité des symptômes</li>
+                            <li>Des réponses plus spécifiques aux questions posées</li>
+                        </ul>
+                        <p>Veuillez enrichir la discussion et réessayer.</p>
+                    </div>
+                    """, unsafe_allow_html=True)
                 
                 # Calculer le temps total
                 timings["total_time"] = time.time() - timings["start_time"]
-                
-                # Afficher la réponse générée
-                st.markdown('<div class="subheader">💡 Suggestion de l\'IA</div>', unsafe_allow_html=True)
-                st.markdown(f'<div class="recommendation-box">{response}</div>', unsafe_allow_html=True)
                 
                 # Afficher les informations de temps d'exécution
                 st.markdown('<div class="subheader">⏱️ Performance du système</div>', unsafe_allow_html=True)
 
                 # Formater les temps pour l'affichage
                 formatted_timings = {
-                    "Génération de la requête": f"{timings['query_generation_time']:.2f} sec",
-                    "Recherche de documents": f"{timings['document_retrieval_time']:.2f} sec",
-                    "Génération de la suggestion": f"{timings['response_generation_time']:.2f} sec",
-                    "Temps total": f"{timings['total_time']:.2f} sec"
+                    "Évaluation de la discussion": f"{timings['evaluation_time']:.2f} sec",
                 }
+                
+                # Ajouter les autres timings seulement si l'évaluation est positive
+                if evaluation_result == "oui":
+                    formatted_timings.update({
+                        "Génération de la requête": f"{timings['query_generation_time']:.2f} sec",
+                        "Recherche de documents": f"{timings['document_retrieval_time']:.2f} sec",
+                        "Génération de la suggestion": f"{timings['response_generation_time']:.2f} sec",
+                    })
+                
+                formatted_timings["Temps total"] = f"{timings['total_time']:.2f} sec"
 
                 # Heure de début et de fin
                 start_time_str = datetime.fromtimestamp(timings["start_time"]).strftime("%H:%M:%S")
@@ -300,17 +364,27 @@ with tab1:
                         st.markdown(f"{formatted_timings[label]}", unsafe_allow_html=True)
                     st.markdown(f"**{formatted_timings['Temps total']}**", unsafe_allow_html=True)
 
-                # Ajouter un graphique pour visualiser la répartition du temps
-                st.markdown('<div class="subheader">📊 Répartition du temps d\'exécution</div>', unsafe_allow_html=True)
-                time_df = pd.DataFrame({
-                    "Étape": ["Génération de la requête", "Recherche de documents", "Génération de la suggestion"],
-                    "Temps (sec)": [
-                        timings["query_generation_time"],
-                        timings["document_retrieval_time"],
-                        timings["response_generation_time"]
-                    ]
-                })
-                st.bar_chart(time_df.set_index("Étape"))
+                # Ajouter un graphique pour visualiser la répartition du temps si l'évaluation est positive
+                if evaluation_result == "oui":
+                    st.markdown('<div class="subheader">📊 Répartition du temps d\'exécution</div>', unsafe_allow_html=True)
+                    time_df = pd.DataFrame({
+                        "Étape": ["Évaluation de la discussion", "Génération de la requête", "Recherche de documents", "Génération de la suggestion"],
+                        "Temps (sec)": [
+                            timings["evaluation_time"],
+                            timings["query_generation_time"],
+                            timings["document_retrieval_time"],
+                            timings["response_generation_time"]
+                        ]
+                    })
+                    st.bar_chart(time_df.set_index("Étape"))
+                else:
+                    # Si évaluation négative, montrer seulement le temps d'évaluation
+                    st.markdown('<div class="subheader">📊 Répartition du temps d\'exécution</div>', unsafe_allow_html=True)
+                    time_df = pd.DataFrame({
+                        "Étape": ["Évaluation de la discussion"],
+                        "Temps (sec)": [timings["evaluation_time"]]
+                    })
+                    st.bar_chart(time_df.set_index("Étape"))
                 
         else:
             st.error("⚠️ Veuillez entrer une discussion avant d'analyser.")
@@ -323,13 +397,16 @@ with tab2:
     1. **Entrez la transcription** de la discussion médecin-patient dans le champ de texte
     2. **Cliquez sur 'Analyser'** pour lancer le traitement
     3. **Consultez les résultats** :
-       - La requête générée par l'IA
-       - Les documents pertinents trouvés dans la base documentaire
-       - La question recommandée par l'IA
+       - Évaluation initiale de la qualité de la discussion
+       - Si la discussion est de qualité suffisante :
+         - La requête générée par l'IA
+         - Les documents pertinents trouvés dans la base documentaire
+         - La question recommandée par l'IA
        - Les métriques de performance du système
 
     ### Fonctionnalités principales
 
+    - **Évaluation de la discussion** : vérification de la qualité et de la précision des informations
     - **Analyse de discussion** : extraction des informations clés
     - **Recherche sémantique** : identification des documents pertinents
     - **IA générative** : suggestion de questions adaptées au contexte
