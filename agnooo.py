@@ -1,21 +1,19 @@
 from agno.agent import Agent
 from agno.models.google import Gemini
-from agno.models.groq import Groq
-
 from dotenv import load_dotenv
 import os
 
 load_dotenv()
 
-Groq_API_KEY = os.getenv("GROQ_API_KEY")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
 # Vérification de la clé API
-if not Groq_API_KEY:
-    raise ValueError("La clé API Groq_API_KEY n'est pas définie dans les variables d'environnement.")
+if not GEMINI_API_KEY:
+    raise ValueError("La clé API GEMINI_API_KEY n'est pas définie dans les variables d'environnement.")
 
 # Création de l'agent avec le modèle Gemini et contrôle de la température
 agent = Agent(
-    model=Groq(id="qwen-2.5-32b", api_key=Groq_API_KEY, temperature=0.7),
+    model=Gemini(id="gemini-2.0-flash", api_key=GEMINI_API_KEY, temperature=0.7),
     description="Tu es un assistant médical spécialisé en allergologie respiratoire.",
     instructions=[
         "Lis attentivement le Logigramme.",
