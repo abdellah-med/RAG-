@@ -180,6 +180,8 @@ st.markdown('<h1 class="main-header">🩺 Assistant IA pour discussions Médical
 # Tabs pour organiser l'interface
 tab1, tab2 = st.tabs(["Analyse de discussion", "Documentation"])
 
+# Partie avec l'analyse de la discussion
+
 with tab1:
     # Champ de texte pour la discussion
     discussion_text = st.text_area(
@@ -202,8 +204,8 @@ with tab1:
             # Initialiser les temps pour chaque étape
             timings = {
                 "start_time": time.time(),
-                "evaluation_time": 0,
                 "query_generation_time": 0,
+                "evaluation_time": 0,
                 "document_retrieval_time": 0,
                 "response_generation_time": 0,
                 "total_time": 0
@@ -215,11 +217,61 @@ with tab1:
             with results_container:
                 st.markdown('<div class="subheader">📊 Résultats de l\'analyse</div>', unsafe_allow_html=True)
                 
-                # Évaluer la qualité de la discussion
+                # Générer la query et mesurer le temps
+                query_start = time.time()
+                with st.spinner("Génération de la requête..."):
+                    query = generate_query(discussion_text)
+                timings["query_generation_time"] = time.time() - query_start
+                
+                # Toujours afficher la query générée
+                with st.expander("🔎 Requête générée"):
+                    st.info(query)
+                
+                # Définir le logigramme médical pour l'allergologie respiratoire
+                logigramme = """
+                **Logigramme pour le diagnostic des allergies respiratoires**
+                1. **L'interrogatoire**
+                   1.1. **Chronologie des symptômes** :
+                   - Question 1 : Date de début des symptômes ?
+                   - Question 2 : Périodes de répit depuis le début ?
+                   - Question 3 : Présence d'une saisonnalité ?
+                   
+                   1.2. **Nature des symptômes** :
+                   ✓ **Nez** (rechercher) :
+                   - Obstruction nasale
+                   - Écoulement
+                   - Prurit/Éternuements
+                   - Respiration buccale
+                   - Renflements
+                   ✓ **Œil** (rechercher) :
+                   - Rougeur/Larmoiement
+                   - Prurit/Sensation de brûlure
+                   ✓ **Larynx** :
+                   - Prurit laryngé/Raclement de gorge ?
+                   ✓ **Poumons** :
+                   - Gêne respiratoire (repos/effort/fou rire) ?
+                   - Respiration sifflante ?
+                   - Toux (diurne/nocturne) ?
+                   ✓ **Autres** :
+                   - Reflux gastro-œsophagien ?
+                   - Antécédents de traitement :
+                     * Antihistaminiques (efficacité ?)
+                     * Ventoline (efficacité ?)
+                   1.3. **Environnement** :
+                   ✓ **Logement** :
+                   - Humidité/Type de sol
+                   - Animaux domestiques
+                   - Exposition tabagique
+                   - État de la literie
+                   ✓ **Profession** :
+                   - Exposition professionnelle (ex : boulanger, coiffeur...)
+                """
+                
+                # Évaluer la qualité de la discussion avec la query générée et le logigramme
                 eval_start = time.time()
                 with st.spinner("Évaluation de la qualité de la discussion..."):
-                    # Contexte vide pour l'instant, peut être adapté si nécessaire
-                    evaluation_result = evaluer_recommandation(discussion_text, "")
+                    # Passage de la query générée et du logigramme comme contexte
+                    evaluation_result = evaluer_recommandation(discussion_text, f"Logigramme: {logigramme}\nRequête générée: {query}")
                 timings["evaluation_time"] = time.time() - eval_start
                 
                 # Afficher le résultat de l'évaluation
@@ -231,16 +283,6 @@ with tab1:
                         Nous allons procéder à l'analyse approfondie.</p>
                     </div>
                     """, unsafe_allow_html=True)
-                    
-                    # Générer la query et mesurer le temps
-                    query_start = time.time()
-                    with st.spinner("Génération de la requête..."):
-                        query = generate_query(discussion_text)
-                    timings["query_generation_time"] = time.time() - query_start
-                    
-                    # Afficher la requête générée dans un expander
-                    with st.expander("🔎 Requête générée"):
-                        st.info(query)
                     
                     # Récupérer les documents similaires et mesurer le temps
                     docs_start = time.time()
@@ -286,16 +328,19 @@ with tab1:
                     response_start = time.time()
                     with st.spinner("Génération de la suggestion..."):
                         question = (
-                            "Propose une seule question pertinente à poser selon les informations et la discussion, "
-                            "comme si elle était posée par le médecin. Explique également quelles ressources (Documentation, Logigramme, etc.) "
-                            "tu as utilisées pour choisir cette question."
+                            "Propose une seule question pertinente à poser selon les informations de la discussion, "
+                            "comme si elle était posée par le médecin. Explique brièvement pourquoi cette question est importante."
                         )
                         
-                        if not filtered_docs:
-                            st.warning("❌ Aucun document ne dépasse le seuil de pertinence minimum.")
-                            response = retrieve_and_ask([{"chunk_text": "aucun document"}], question, discussion_text)
-                        else:
+                        # S'assurer que filtered_docs contient des documents pertinents
+                        if filtered_docs:
                             response = retrieve_and_ask(filtered_docs, question, discussion_text)
+                        else:
+                            # Si aucun document ne dépasse le seuil, utiliser quand même les meilleurs documents disponibles
+                            st.warning("⚠️ Aucun document ne dépasse le seuil de pertinence. Utilisation des meilleurs documents disponibles.")
+                            # Utiliser les 2 meilleurs documents même s'ils sont sous le seuil
+                            response = retrieve_and_ask(top_docs[:2], question, discussion_text)
+                    
                     timings["response_generation_time"] = time.time() - response_start
                     
                     # Afficher la réponse générée
@@ -326,13 +371,13 @@ with tab1:
 
                 # Formater les temps pour l'affichage
                 formatted_timings = {
+                    "Génération de la requête": f"{timings['query_generation_time']:.2f} sec",
                     "Évaluation de la discussion": f"{timings['evaluation_time']:.2f} sec",
                 }
                 
                 # Ajouter les autres timings seulement si l'évaluation est positive
                 if evaluation_result == "oui":
                     formatted_timings.update({
-                        "Génération de la requête": f"{timings['query_generation_time']:.2f} sec",
                         "Recherche de documents": f"{timings['document_retrieval_time']:.2f} sec",
                         "Génération de la suggestion": f"{timings['response_generation_time']:.2f} sec",
                     })
@@ -343,7 +388,7 @@ with tab1:
                 start_time_str = datetime.fromtimestamp(timings["start_time"]).strftime("%H:%M:%S")
                 end_time_str = datetime.fromtimestamp(timings["start_time"] + timings["total_time"]).strftime("%H:%M:%S")
 
-                # Afficher la boîte de timing en utilisant des composants Streamlit natifs
+                # Afficher la boîte de timing
                 st.markdown(f"""
                 <div class="timing-box">
                     <div class="timing-header">Analyse effectuée de {start_time_str} à {end_time_str}</div>
@@ -364,27 +409,28 @@ with tab1:
                         st.markdown(f"{formatted_timings[label]}", unsafe_allow_html=True)
                     st.markdown(f"**{formatted_timings['Temps total']}**", unsafe_allow_html=True)
 
-                # Ajouter un graphique pour visualiser la répartition du temps si l'évaluation est positive
+                # Graphique de répartition du temps
+                st.markdown('<div class="subheader">📊 Répartition du temps d\'exécution</div>', unsafe_allow_html=True)
+                
+                # Préparer les données pour le graphique
+                time_data = {
+                    "Étape": ["Génération de la requête", "Évaluation de la discussion"],
+                    "Temps (sec)": [
+                        timings["query_generation_time"],
+                        timings["evaluation_time"]
+                    ]
+                }
+                
+                # Ajouter les autres étapes si l'évaluation est positive
                 if evaluation_result == "oui":
-                    st.markdown('<div class="subheader">📊 Répartition du temps d\'exécution</div>', unsafe_allow_html=True)
-                    time_df = pd.DataFrame({
-                        "Étape": ["Évaluation de la discussion", "Génération de la requête", "Recherche de documents", "Génération de la suggestion"],
-                        "Temps (sec)": [
-                            timings["evaluation_time"],
-                            timings["query_generation_time"],
-                            timings["document_retrieval_time"],
-                            timings["response_generation_time"]
-                        ]
-                    })
-                    st.bar_chart(time_df.set_index("Étape"))
-                else:
-                    # Si évaluation négative, montrer seulement le temps d'évaluation
-                    st.markdown('<div class="subheader">📊 Répartition du temps d\'exécution</div>', unsafe_allow_html=True)
-                    time_df = pd.DataFrame({
-                        "Étape": ["Évaluation de la discussion"],
-                        "Temps (sec)": [timings["evaluation_time"]]
-                    })
-                    st.bar_chart(time_df.set_index("Étape"))
+                    time_data["Étape"].extend(["Recherche de documents", "Génération de la suggestion"])
+                    time_data["Temps (sec)"].extend([
+                        timings["document_retrieval_time"],
+                        timings["response_generation_time"]
+                    ])
+                
+                time_df = pd.DataFrame(time_data)
+                st.bar_chart(time_df.set_index("Étape"))
                 
         else:
             st.error("⚠️ Veuillez entrer une discussion avant d'analyser.")

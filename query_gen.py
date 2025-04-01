@@ -22,7 +22,7 @@ def generate_query(conversation_text):
         """
     
     response = client.chat.completions.create(
-        model="qwen-2.5-32b",  # Vous pouvez choisir un autre modèle Groq comme "mixtral-8x7b-32768"
+        model="qwen-2.5-32b", 
         messages=[
             {"role": "system", "content": prompt},
             {"role": "user", "content": conversation_text}
@@ -30,5 +30,6 @@ def generate_query(conversation_text):
         temperature=0.3,
         max_tokens=50
     )
+    
     
     return response.choices[0].message.content.strip()
