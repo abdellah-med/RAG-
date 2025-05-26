@@ -51,7 +51,7 @@ def evaluer_recommandation(discussion: str, contexte: str) -> str:
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": f"Conversation à analyser:\n{discussion}\n\nContexte (logigramme et requête générée):\n{contexte}"}
             ],
-            model="qwen-2.5-32b",
+            model="meta-llama/llama-4-scout-17b-16e-instruct",
             temperature=0.3,  # Température plus faible pour obtenir un nombre précis
             max_tokens=3,  # Très peu de tokens pour forcer une réponse courte
         )
@@ -69,7 +69,7 @@ def evaluer_recommandation(discussion: str, contexte: str) -> str:
             print(f"Score normalisé: {indice}")
             
             # Retourner 'oui' si l'indice est supérieur à 0.5, 'non' sinon
-            return "oui" if indice > 0.5 else "non"
+            return "oui" if indice > 0.1 else "non"
             
         except ValueError:
             print(f"Erreur: impossible de convertir '{reponse}' en nombre")
