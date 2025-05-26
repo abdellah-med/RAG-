@@ -22,7 +22,7 @@ def generate_query(conversation_text):
         """
     
     response = client.chat.completions.create(
-        model="qwen-2.5-32b", 
+        model="qwen-qwq-32b", 
         messages=[
             {"role": "system", "content": prompt},
             {"role": "user", "content": conversation_text}
