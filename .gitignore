@@ -3,3 +3,8 @@ Corpus/
 mon_env/
 .env
 logigramme.txt
+enregistrement.wav
+transcription.txt
+transcription_classified.json
+venv
+requirements.txt
