@@ -6,5 +6,5 @@ logigramme.txt
 enregistrement.wav
 transcription.txt
 transcription_classified.json
-venv
+venv/
 requirements.txt
