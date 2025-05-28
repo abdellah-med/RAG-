@@ -69,7 +69,7 @@ def evaluer_recommandation(discussion: str, contexte: str) -> str:
             print(f"Score normalisé: {indice}")
             
             # Retourner 'oui' si l'indice est supérieur à 0.5, 'non' sinon
-            return "oui" if indice > 0.1 else "non"
+            return "oui" if indice > 0.4 else "non"
             
         except ValueError:
             print(f"Erreur: impossible de convertir '{reponse}' en nombre")

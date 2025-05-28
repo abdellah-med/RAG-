@@ -1,5 +1,8 @@
 import streamlit as st
 from streamlit import config
+from record_audio import enregistrer_audio
+from transcription import transcrire_audio
+
 
 # Désactiver le file watcher pour éviter les conflits avec PyTorch
 config.set_option("server.fileWatcherType", "none")
@@ -434,6 +437,18 @@ with tab1:
                 
         else:
             st.error("⚠️ Veuillez entrer une discussion avant d'analyser.")
+
+    st.markdown('<div class="subheader">🎙️ Enregistrement vocal</div>', unsafe_allow_html=True)
+
+    if st.button("🎤 Enregistrer et analyser une discussion", use_container_width=True):
+        audio_filename = "enregistrement.wav"
+        # Appelle la fonction d'enregistrement
+        enregistrer_audio(audio_filename)  # définie dans record_audio.py
+        with st.spinner("🔁 Transcription de l'audio..."):
+            discussion_text = transcrire_audio(audio_filename)
+        st.success("✅ Transcription terminée. Texte inséré ci-dessous.")
+        st.text_area("Discussion transcrite :", value=discussion_text, height=250)
+
 
 with tab2:
     st.markdown('<div class="subheader">📖 Documentation du système</div>', unsafe_allow_html=True)

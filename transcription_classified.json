@@ -1,0 +1,62 @@
+[
+    {
+        "speaker": "Allergologue",
+        "text": "Bonjour monsieur, comment allez-vous aujourd'hui ?"
+    },
+    {
+        "speaker": "Patient",
+        "text": "Bonjour, pas terrible."
+    },
+    {
+        "speaker": "Patient",
+        "text": "C'est éternel mot et ce toux me rend folle."
+    },
+    {
+        "speaker": "Allergologue",
+        "text": "Ah oui ?"
+    },
+    {
+        "speaker": "Allergologue",
+        "text": "Pourriez-vous me préciser si ces symptômes surviennent plus tôt à une période spécifique de l'année ou ils sont présents toute l'année ?"
+    },
+    {
+        "speaker": "Patient",
+        "text": "Je dirais que c'est pire au printemps, mais pas seulement."
+    },
+    {
+        "speaker": "Patient",
+        "text": "Ah d'accord."
+    },
+    {
+        "speaker": "Allergologue",
+        "text": "Pourriez-vous me décrire alors plus précisément la nature de vos toux ?"
+    },
+    {
+        "speaker": "Allergologue",
+        "text": "Est-ce qu'ils sont sèches, grasses, nocturnes ?"
+    },
+    {
+        "speaker": "Allergologue",
+        "text": "Et si elle est accompagnée des sifflements ou de gênes respiratoires ?"
+    },
+    {
+        "speaker": "Patient",
+        "text": "Je ne sais pas trop en fait."
+    },
+    {
+        "speaker": "Patient",
+        "text": "Ça vient et ça repart."
+    },
+    {
+        "speaker": "Allergologue",
+        "text": "Ressentez-vous alors des démangeaisons ou des picotements au niveau du nez, des yeux ou de la gorge, en plus de vos éternuements de votre doux ?"
+    },
+    {
+        "speaker": "Patient",
+        "text": "Parfois oui, parfois un peu au niveau des yeux."
+    },
+    {
+        "speaker": "Allergologue",
+        "text": "D'accord"
+    }
+]

@@ -6,9 +6,12 @@ from indexall_minilm import (
 )
 from query_gen import generate_query
 from agnooo import retrieve_and_ask
-
+from record_audio import enregistrer_audio
 
 if __name__ == "__main__":
+
+    enregistrer_audio(duree=5)
+    
     collection_name = "corpus_a"
     client = connect_to_qdrant()
 
