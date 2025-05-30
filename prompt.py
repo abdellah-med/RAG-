@@ -14,51 +14,47 @@ if not GEMINI_API_KEY:
 
 agent = Agent(
     model=Gemini(id="gemini-2.0-flash", api_key=GEMINI_API_KEY, temperature=0),
-    description="Tu es un modèle capable d'identifier si un texte est prononcé par un allergologue ou un patient, en utilisant des balises.",
+    description="Tu es un modèle capable d'identifier qui parle dans une transcription (allergologue ou patient).",
     instructions=[
-        "Réponds uniquement par la balise correcte : <Allergologue> ou <Patient>.",
-        "Ne donne aucune autre explication."
+        "Tague chaque réplique du texte avec <Allergologue> ou <Patient> autour de chaque phrase.",
+        "Si plusieurs phrases sont prononcées par la même personne à la suite, regroupe-les dans la même balise.",
+        "Ne modifie pas le contenu.",
+        "Ne donne aucune explication ni commentaire."
     ],
     markdown=False
 )
 
-def split_into_sentences(text):
-    # Sépare le texte en phrases sur . ! ? suivi d'espace ou fin de texte
-    sentences = re.split(r'(?<=[.!?])\s+', text.strip())
-    return [s for s in sentences if s]
-
-def classify_speaker(text: str) -> str:
+def classify_whole_transcript(text: str) -> list:
     prompt = (
-        "Tu es un modèle qui identifie si une phrase est dite par un allergologue ou un patient.\n"
-        "Tu dois répondre uniquement par une balise exacte : <Allergologue> ou <Patient>, sans autre texte.\n"
-        "Exemples :\n"
-        "<Allergologue>Depuis combien de temps avez-vous ces symptômes ?</Allergologue>\n"
-        "<Patient>Ça a commencé il y a deux semaines, surtout la nuit.</Patient>\n"
-        "<Allergologue>Est-ce que vous avez des antécédents d’allergies ?</Allergologue>\n"
-        "<Patient>Non, aucun antécédent connu.</Patient>\n\n"
-        f"Phrase à classifier : \"{text}\"\n"
-        "Balise correcte :"
+        "Tu es un modèle qui identifie qui parle dans un dialogue entre un allergologue et un patient.\n"
+        "Tu dois encadrer chaque réplique avec une balise : <Allergologue> ... </Allergologue> ou <Patient> ... </Patient>.\n"
+        "Ne modifie pas le texte. Ne donne aucune explication.\n"
+        "Voici la transcription :\n"
+        f"{text}\n"
+        "\nRéponse attendue :"
     )
+
     response = agent.run(prompt)
-    tag = response.content.strip()
-    if "<Allergologue>" in tag:
-        return "Allergologue"
-    else:
-        return "Patient"
-    # En cas d'erreur ou d'ambiguïté, retourner Patient par défaut
-    # else:
-    #     return "Patient"
+    tagged_text = response.content.strip()
+
+    # Extraction des blocs tagués
+    pattern = r"<(Allergologue|Patient)>(.*?)</\1>"
+    matches = re.findall(pattern, tagged_text, re.DOTALL)
+
+    results = []
+    for speaker, speech in matches:
+        speech = speech.strip()
+        if speech:
+            results.append({
+                "speaker": speaker,
+                "text": speech
+            })
+    return results
 
 def process_transcription_file(filename: str):
     with open(filename, "r", encoding="utf-8") as file:
         text = file.read()
-    
-    sentences = split_into_sentences(text)
-    results = []
-    for sentence in sentences:
-        speaker = classify_speaker(sentence)
-        results.append({"speaker": speaker, "text": sentence})
-    return results
+    return classify_whole_transcript(text)
 
 def save_results_as_json(results, output_filename="transcription_classified.json"):
     with open(output_filename, "w", encoding="utf-8") as f:
