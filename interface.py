@@ -1,25 +1,32 @@
 import streamlit as st
 from streamlit import config
-from record_audio import enregistrer_audio
-from transcription import transcrire_audio
-
+import sounddevice as sd
+import wave
+import os
+import threading
+import time
+import numpy as np
+from datetime import datetime
 
 # Désactiver le file watcher pour éviter les conflits avec PyTorch
 config.set_option("server.fileWatcherType", "none")
 
-from indexall_minilm import (
-    connect_to_qdrant,
-    create_collection,
-    index_all_pdfs,
-    get_similar_documents
-)
-from query_gen import generate_query
-from agnooo import retrieve_and_ask
+# Imports des modules personnalisés
+try:
+    from transcription import transcrire_audio
+    from indexall_minilm import (
+        connect_to_qdrant,
+        create_collection,
+        index_all_pdfs,
+        get_similar_documents
+    )
+    from query_gen import generate_query
+    from agnooo import retrieve_and_ask
+    from should_ask import evaluer_recommandation
+except ImportError as e:
+    st.error(f"Erreur d'import: {e}")
+
 import pandas as pd
-import time
-from datetime import datetime
-# Importer la fonction d'évaluation
-from should_ask import evaluer_recommandation
 
 # Configuration de la page
 st.set_page_config(
@@ -27,6 +34,126 @@ st.set_page_config(
     page_icon="🩺",
     layout="wide"
 )
+
+# Classe pour l'enregistrement audio intégrée
+class StreamlitAudioRecorder:
+    def __init__(self, duree_tranche=5, frequence=44100, dossier_sortie="enregistrements"):
+        self.duree_tranche = duree_tranche
+        self.frequence = frequence
+        self.dossier_sortie = dossier_sortie
+        self.compteur = 1
+        
+        # Créer le dossier de sortie
+        os.makedirs(self.dossier_sortie, exist_ok=True)
+    
+    def enregistrer_audio_continu(self):
+        """Fonction d'enregistrement audio qui vérifie l'état Streamlit"""
+        print(f"🎙️ Démarrage de l'enregistrement par tranches de {self.duree_tranche} secondes...")
+        
+        try:
+            while st.session_state.get("recording", False):
+                # Générer un nom de fichier avec timestamp
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                nom_fichier = os.path.join(
+                    self.dossier_sortie, 
+                    f"enregistrement_{self.compteur:03d}_{timestamp}.wav"
+                )
+                
+                print(f"🎧 Enregistrement du fichier : {nom_fichier}")
+                
+                try:
+                    # Enregistrer par petits segments pour pouvoir vérifier l'état
+                    segments_par_tranche = 10  # 10 segments de 0.5 sec pour une tranche de 5 sec
+                    segment_duration = self.duree_tranche / segments_par_tranche
+                    samples_per_segment = int(segment_duration * self.frequence)
+                    
+                    all_audio_data = []
+                    
+                    for segment in range(segments_par_tranche):
+                        # Vérifier si on doit arrêter l'enregistrement
+                        if not st.session_state.get("recording", False):
+                            break
+                        
+                        # Enregistrer un petit segment
+                        audio_segment = sd.rec(
+                            samples_per_segment,
+                            samplerate=self.frequence,
+                            channels=1,
+                            dtype='int16'
+                        )
+                        sd.wait()
+                        all_audio_data.append(audio_segment)
+                    
+                    # Si on a des données audio, les sauvegarder
+                    if all_audio_data and st.session_state.get("recording", False):
+                        # Concaténer tous les segments
+                        audio_data = np.concatenate(all_audio_data, axis=0)
+                        self._sauvegarder_wav(nom_fichier, audio_data)
+                        print(f"✅ Fichier sauvegardé : {nom_fichier}")
+                        self.compteur += 1
+                        
+                        # Mettre à jour le statut dans Streamlit
+                        st.session_state.last_recorded_file = nom_fichier
+                        st.session_state.total_recorded_files = self.compteur - 1
+                    
+                except Exception as e:
+                    print(f"Erreur lors de l'enregistrement du segment {self.compteur}: {e}")
+                    continue
+                
+        except Exception as e:
+            print(f"Erreur générale durant l'enregistrement : {e}")
+        finally:
+            print("🛑 Enregistrement arrêté proprement.")
+            st.session_state.recording = False
+    
+    def _sauvegarder_wav(self, nom_fichier, audio_data):
+        """Sauvegarder les données audio au format WAV"""
+        with wave.open(nom_fichier, 'wb') as wf:
+            wf.setnchannels(1)  # Mono
+            wf.setsampwidth(2)  # 16 bits
+            wf.setframerate(self.frequence)
+            wf.writeframes(audio_data.tobytes())
+    
+    def get_all_recordings(self):
+        """Retourner la liste de tous les enregistrements"""
+        files = []
+        if os.path.exists(self.dossier_sortie):
+            for filename in os.listdir(self.dossier_sortie):
+                if filename.endswith('.wav'):
+                    filepath = os.path.join(self.dossier_sortie, filename)
+                    files.append({
+                        'name': filename,
+                        'path': filepath,
+                        'size': os.path.getsize(filepath),
+                        'modified': datetime.fromtimestamp(os.path.getmtime(filepath))
+                    })
+        return sorted(files, key=lambda x: x['modified'], reverse=True)
+
+# Fonctions pour contrôler l'enregistrement
+def demarrer_enregistrement_streamlit():
+    """Démarre l'enregistrement dans un thread compatible avec Streamlit"""
+    if 'audio_recorder' not in st.session_state:
+        duree = st.session_state.get('duree_tranche', 5)
+        freq = st.session_state.get('frequence', 44100)
+        st.session_state.audio_recorder = StreamlitAudioRecorder(duree_tranche=duree, frequence=freq)
+    
+    if not st.session_state.get("recording", False):
+        st.session_state.recording = True
+        st.session_state.total_recorded_files = 0
+        
+        # Démarrer l'enregistrement dans un thread
+        thread = threading.Thread(target=st.session_state.audio_recorder.enregistrer_audio_continu)
+        thread.daemon = True
+        thread.start()
+        return True
+    return False
+
+def arreter_enregistrement_streamlit():
+    """Arrête l'enregistrement"""
+    if st.session_state.get("recording", False):
+        st.session_state.recording = False
+        return True
+    return False
 
 # Application des styles CSS personnalisés
 st.markdown("""
@@ -128,6 +255,20 @@ st.markdown("""
         margin-top: 1rem;
         color: #155724;
     }
+    .recording-active {
+        background-color: #ffebee;
+        border: 1px solid #f44336;
+        border-radius: 10px;
+        padding: 1rem;
+        margin: 1rem 0;
+    }
+    .recording-stopped {
+        background-color: #e8f5e8;
+        border: 1px solid #4caf50;
+        border-radius: 10px;
+        padding: 1rem;
+        margin: 1rem 0;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -136,19 +277,23 @@ st.markdown("""
 def initialize_qdrant():
     # Initialisation de la connexion Qdrant
     collection_name = "corpus_a"
-    client = connect_to_qdrant()
-    should_index = create_collection(client, collection_name, 384)  # Taille des embeddings MiniLM-L6
-    if should_index:
-        with st.spinner("Indexation des documents PDF en cours..."):
-            index_all_pdfs(client, collection_name, "ALLERG_IA")
-    return client, collection_name
+    try:
+        client = connect_to_qdrant()
+        should_index = create_collection(client, collection_name, 384)  # Taille des embeddings MiniLM-L6
+        if should_index:
+            with st.spinner("Indexation des documents PDF en cours..."):
+                index_all_pdfs(client, collection_name, "ALLERG_IA")
+        return client, collection_name
+    except Exception as e:
+        st.error(f"Erreur lors de l'initialisation de Qdrant: {e}")
+        return None, None
 
 # Sidebar pour la configuration et les informations
 with st.sidebar:
     st.markdown('<div class="sidebar-header">⚙️ Configuration</div>', unsafe_allow_html=True)
     
     # Paramètres de recherche
-    st.subheader("Paramètres")
+    st.subheader("Paramètres de recherche")
     threshold = st.slider(
         "Seuil de pertinence (score minimum)",
         min_value=0.0,
@@ -167,6 +312,42 @@ with st.sidebar:
     )
     
     st.markdown("---")
+    
+    # Paramètres d'enregistrement
+    st.markdown("### 🎤 Paramètres d'enregistrement")
+    
+    duree_tranche = st.slider(
+        "Durée par tranche (secondes)",
+        min_value=1,
+        max_value=30,
+        value=5,
+        help="Durée de chaque segment d'enregistrement"
+    )
+    st.session_state.duree_tranche = duree_tranche
+    
+    frequence = st.selectbox(
+        "Fréquence d'échantillonnage",
+        options=[16000, 22050, 44100, 48000],
+        index=2,
+        help="Qualité de l'enregistrement (44100 Hz recommandé)"
+    )
+    st.session_state.frequence = frequence
+    
+    # Bouton pour nettoyer tous les enregistrements
+    if st.button("🧹 Nettoyer tous les enregistrements", type="secondary"):
+        try:
+            import shutil
+            if os.path.exists("enregistrements"):
+                shutil.rmtree("enregistrements")
+                os.makedirs("enregistrements", exist_ok=True)
+            st.session_state.total_recorded_files = 0
+            st.session_state.last_recorded_file = None
+            st.success("Tous les enregistrements ont été supprimés!")
+            st.rerun()
+        except Exception as e:
+            st.error(f"Erreur lors du nettoyage: {e}")
+    
+    st.markdown("---")
     st.markdown("""
     <div style="font-size: 0.9rem">
     <b>À propos</b><br>
@@ -181,16 +362,23 @@ client, collection_name = initialize_qdrant()
 st.markdown('<h1 class="main-header">🩺 Assistant IA pour discussions Médicales</h1>', unsafe_allow_html=True)
 
 # Tabs pour organiser l'interface
-tab1, tab2 = st.tabs(["Analyse de discussion", "Documentation"])
-
-# Partie avec l'analyse de la discussion
+tab1, tab2, tab3 = st.tabs(["Analyse de discussion", "Enregistrement Audio", "Documentation"])
 
 with tab1:
+    # Initialiser les variables de session pour le texte de discussion
+    if "discussion_text" not in st.session_state:
+        st.session_state.discussion_text = ""
+    
     # Champ de texte pour la discussion
     discussion_text = st.text_area(
-        "Entrez la discussion :",
-        height=250
+        "Entrez la discussion :", 
+        value=st.session_state.discussion_text,
+        height=250,
+        key="discussion_input"
     )
+    
+    # Mettre à jour la session state
+    st.session_state.discussion_text = discussion_text
     
     # Boutons d'action
     col1, col2 = st.columns([1, 3])
@@ -198,11 +386,11 @@ with tab1:
         analyze_button = st.button("🔍 Analyser la discussion", use_container_width=True)
     with col2:
         if st.button("🗑️ Effacer", use_container_width=True):
-            discussion_text = ""
-            st.experimental_rerun()
+            st.session_state.discussion_text = ""
+            st.rerun()
     
     # Analyse de la discussion
-    if analyze_button:
+    if analyze_button and client and collection_name:
         if discussion_text.strip():
             # Initialiser les temps pour chaque étape
             timings = {
@@ -437,50 +625,46 @@ with tab1:
                 
         else:
             st.error("⚠️ Veuillez entrer une discussion avant d'analyser.")
-
-    st.markdown('<div class="subheader">🎙️ Enregistrement vocal</div>', unsafe_allow_html=True)
-
-    if st.button("🎤 Enregistrer et analyser une discussion", use_container_width=True):
-        audio_filename = "enregistrement.wav"
-        # Appelle la fonction d'enregistrement
-        enregistrer_audio(audio_filename)  # définie dans record_audio.py
-        with st.spinner("🔁 Transcription de l'audio..."):
-            discussion_text = transcrire_audio(audio_filename)
-        st.success("✅ Transcription terminée. Texte inséré ci-dessous.")
-        st.text_area("Discussion transcrite :", value=discussion_text, height=250)
-
+    elif analyze_button and not client:
+        st.error("⚠️ Erreur de connexion à la base de données. Veuillez réessayer.")
 
 with tab2:
-    st.markdown('<div class="subheader">📖 Documentation du système</div>', unsafe_allow_html=True)
-    st.markdown("""
-    ### Comment utiliser cette application
+    st.markdown('<div class="subheader">🎤 Enregistrement vocal par tranches</div>', unsafe_allow_html=True)
 
-    1. **Entrez la transcription** de la discussion médecin-patient dans le champ de texte
-    2. **Cliquez sur 'Analyser'** pour lancer le traitement
-    3. **Consultez les résultats** :
-       - Évaluation initiale de la qualité de la discussion
-       - Si la discussion est de qualité suffisante :
-         - La requête générée par l'IA
-         - Les documents pertinents trouvés dans la base documentaire
-         - La question recommandée par l'IA
-       - Les métriques de performance du système
+    # Initialiser les variables de session si nécessaire
+    if "recording" not in st.session_state:
+        st.session_state.recording = False
+    if "total_recorded_files" not in st.session_state:
+        st.session_state.total_recorded_files = 0
+    if "last_recorded_file" not in st.session_state:
+        st.session_state.last_recorded_file = None
 
-    ### Fonctionnalités principales
+    # Interface de contrôle d'enregistrement
+    col_rec1, col_rec2, col_rec3 = st.columns([1, 1, 1])
 
-    - **Évaluation de la discussion** : vérification de la qualité et de la précision des informations
-    - **Analyse de discussion** : extraction des informations clés
-    - **Recherche sémantique** : identification des documents pertinents
-    - **IA générative** : suggestion de questions adaptées au contexte
-    - **Analyse de performance** : mesure des temps d'exécution de chaque étape
-    
-    ### Base documentaire
-    
-    L'application utilise une base de connaissances spécialisée en allergologie stockée dans la collection "corpus_a".
-    """)
+    with col_rec1:
+        if st.button("🎙️ Démarrer l'enregistrement", disabled=st.session_state.recording):
+            if demarrer_enregistrement_streamlit():
+                st.success("🔴 Enregistrement démarré!")
+                st.rerun()
 
-# Pied de page
-st.markdown("""
-<div class="footer">
-    © 2025 - Assistant IA pour discussions Médicales - Développé avec Streamlit
-</div>
-""", unsafe_allow_html=True)
+    with col_rec2:
+        if st.button("⏹️ Arrêter l'enregistrement", disabled=not st.session_state.recording):
+            if arreter_enregistrement_streamlit():
+                st.success("⏹️ Enregistrement arrêté!")
+                st.rerun()
+
+    with col_rec3:
+        if st.button("🔄 Actualiser le statut"):
+            st.rerun()
+
+    # Affichage du statut d'enregistrement
+    if st.session_state.recording:
+        st.markdown(f"""
+        <div class="recording-active">
+            <h4 style="color: #d32f2f; margin: 0;">🔴 Enregistrement en cours...</h4>
+            <p style="margin: 0.5rem 0 0 0;">
+                L'enregistrement se fait par tranches de {st.session_state.get('duree_tranche', 'valeur par défaut')} minutes.
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
