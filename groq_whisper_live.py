@@ -23,7 +23,7 @@ class GroqWhisperLiveTranscriber:
         self.gemini_api_key = gemini_api_key or os.getenv("GEMINI_API_KEY")
         if self.gemini_api_key:
             genai.configure(api_key=self.gemini_api_key)
-            self.gemini_model = genai.GenerativeModel('gemini-2.0-flash-exp')
+            self.gemini_model = genai.GenerativeModel('gemini-2.0-flash')
         
         # Configuration audio
         self.chunk = 1024
@@ -121,6 +121,7 @@ class GroqWhisperLiveTranscriber:
         try:
             # Transcription avec Groq
             with open(audio_file_path, "rb") as file:
+                time.sleep(3)
                 transcription = self.client.audio.transcriptions.create(
                     file=(audio_file_path, file.read()),
                     model="whisper-large-v3-turbo",
@@ -147,6 +148,55 @@ class GroqWhisperLiveTranscriber:
             except:
                 pass
     
+    def detecter_questions_manquantes(self, texte_conversation: str) -> list:
+        """
+        Analyse automatique du dialogue structuré pour suggérer des questions médicales
+        non abordées dans la consultation.
+        """
+        try:
+            time.sleep(6)
+
+            prompt = f"""
+    Tu es un assistant médical expert en consultations d’allergologie.
+
+    Tu as reçu le compte-rendu structuré suivant entre un médecin et un patient :
+
+    {texte_conversation}
+
+    Analyse cette discussion et identifie les **thèmes médicaux importants NON abordés** parmi :
+    - Symptômes précis
+    - Durée des symptômes
+    - Environnement allergène (animaux, acariens, pollen…)
+    - Traitements déjà essayés
+    - Antécédents médicaux ou familiaux
+    - Facteurs aggravants (saison, activité, lieu...)
+
+    **Objectif :** proposer des questions que le MÉDECIN aurait pu poser mais n’a pas posées.
+
+    **Format de réponse attendu :**
+    === QUESTIONS COMPLÉMENTAIRES SUGGÉRÉES ===
+    - [Question 1]
+    - [Question 2]
+    ...
+    """
+
+            response = self.gemini_model.generate_content(prompt)
+
+            if response.text and "QUESTIONS COMPLÉMENTAIRES" in response.text:
+                lines = response.text.strip().splitlines()
+                suggestions = [
+                    line.strip("- ").strip()
+                    for line in lines
+                    if line.startswith("- ")
+                ]
+                return suggestions
+            else:
+                return []
+
+        except Exception as e:
+            print(f"❌ Erreur lors de la détection de questions manquantes: {e}")
+            return []
+
     def process_with_gemini(self):
         """Envoie la conversation complète à Gemini 2.0 Flash pour diarisation améliorée"""
         try:
@@ -155,18 +205,21 @@ class GroqWhisperLiveTranscriber:
             
             if not conversation_copy.strip():
                 return
-                
+            
+            time.sleep(6)
             # Nouveau prompt amélioré avec contexte médical
             prompt = f"""{self.medical_context}
 
 Tu es un assistant médical expert en transcription et analyse de consultations d'allergologie. 
 
-**Tâches:**
-1. Identifier clairement MÉDECIN/PATIENT (questions techniques vs réponses descriptives)
-2. Corriger les erreurs de transcription plausibles
-3. Reconstituer les phrases interrompues
-4. Structurer le dialogue de manière claire
-
+**Tâches :**
+1. Identifier clairement les rôles (MÉDECIN vs PATIENT) selon le contenu : questions techniques pour le médecin, réponses descriptives pour le patient.
+2. Corriger les erreurs de transcription, en particulier les confusions courantes liées à l'oral médical (ex : "toux" compris comme "tout", "rhume" mal orthographié, etc.).
+3. Reconstituer les phrases interrompues ou incomplètes.
+4. Structurer le dialogue de manière lisible, ligne par ligne, comme un échange :  
+   - MÉDECIN : Bonjour, que puis-je faire pour vous aujourd’hui ?  
+   - PATIENT : J’ai une toux sèche depuis trois jours...
+   
 **Transcription brute:**
 {conversation_copy}
 
@@ -199,6 +252,16 @@ PATIENT: Depuis environ 3 semaines, surtout le matin.
             
             if response.text:
                 self.display_structured_conversation(response.text)
+
+                # ➕ Suggestions intelligentes de questions manquantes
+                suggestions = self.detecter_questions_manquantes(response.text)
+                if suggestions:
+                    print("\n💡 QUESTIONS SUPPLÉMENTAIRES À POSER :")
+                    print("="*40)
+                    for q in suggestions:
+                        print(f"- {q}")
+                else:
+                    print("\n✅ Aucune question importante ne semble avoir été oubliée.")
             else:
                 print("❌ Réponse Gemini vide")
                 
@@ -244,7 +307,7 @@ PATIENT: Depuis environ 3 semaines, surtout le matin.
             print(f"📝 Transcription brute sauvegardée dans : {txt_filename}")
 
         # Traitement final amélioré
-        print("\n📄 Génération du rapport final...")
+        # print("\n📄 Génération du rapport final...")
         self.generate_final_report()
         print("✅ Écoute arrêtée")
 
@@ -253,10 +316,18 @@ PATIENT: Depuis environ 3 semaines, surtout le matin.
         """Génère un rapport final complet avec analyse"""
         if not self.full_conversation.strip():
             return
+        
+        if hasattr(self, 'structured_conversation') and self.structured_conversation:
+            self.suggestions_questions = self.detecter_questions_manquantes(self.structured_conversation)
+        else:
+            self.suggestions_questions = []
 
-        print("\n" + "="*70)
-        print("📊 RAPPORT FINAL DE CONSULTATION (ANALYSE COMPLÈTE)")
-        print("="*70)
+        # print("\n" + "="*70)
+        # print("📊 RAPPORT FINAL DE CONSULTATION (ANALYSE COMPLÈTE)")
+        # print("="*70)
+
+
+        time.sleep(6)
         
         # Prompt pour le rapport complet
         final_prompt = f"""{self.medical_context}
@@ -298,24 +369,24 @@ PATIENT: Depuis environ 3 semaines, surtout le matin.
         try:
             response = self.gemini_model.generate_content(final_prompt)
             
-            if response.text:
-                # Sauvegarde améliorée
-                timestamp = time.strftime("%Y%m%d_%H%M%S")
-                filename = f"consultation_allergo_{timestamp}.txt"
+            # if response.text:
+            #     # Sauvegarde améliorée
+            #     timestamp = time.strftime("%Y%m%d_%H%M%S")
+            #     filename = f"consultation_allergo_{timestamp}.txt"
                 
-                with open(filename, 'w', encoding='utf-8') as f:
-                    f.write("=== RAPPORT MÉDICAL COMPLET ===\n")
-                    f.write(f"Date: {timestamp}\n")
-                    f.write("Spécialité: Allergologie respiratoire\n")
-                    f.write("="*50 + "\n\n")
-                    f.write(response.text)
-                    f.write("\n\n=== TRANSCRIPTION BRUTE ===\n")
-                    f.write(self.full_conversation)
+            #     with open(filename, 'w', encoding='utf-8') as f:
+            #         f.write("=== RAPPORT MÉDICAL COMPLET ===\n")
+            #         f.write(f"Date: {timestamp}\n")
+            #         f.write("Spécialité: Allergologie respiratoire\n")
+            #         f.write("="*50 + "\n\n")
+            #         f.write(response.text)
+            #         f.write("\n\n=== TRANSCRIPTION BRUTE ===\n")
+            #         f.write(self.full_conversation)
                 
-                print(response.text)
-                print(f"\n💾 Fichier sauvegardé: {filename}")
-            else:
-                print("❌ Échec de génération du rapport")
+            #     print(response.text)
+            #     print(f"\n💾 Fichier sauvegardé: {filename}")
+            # else:
+            #     print("❌ Échec de génération du rapport")
                 
         except Exception as e:
             print(f"❌ Erreur lors de la génération du rapport: {e}")

@@ -35,13 +35,33 @@ with col2:
         time.sleep(0.5)
         st.rerun()
 
-# Afficher la transcription brute en direct
-st.subheader("📝 Transcription brute (live)")
+# Affichage transcription brute
 if hasattr(st.session_state.transcriber, 'full_conversation'):
     st.text_area("Texte en cours", 
-                st.session_state.transcriber.full_conversation, 
-                height=300,
-                key="live_transcription")
+                 st.session_state.transcriber.full_conversation, 
+                 height=300,
+                 key="live_transcription")
+    
+    # Détecter les questions manquantes en direct (seulement si la conversation a du contenu)
+    if st.session_state.transcriber.full_conversation.strip():
+        # Pour éviter de faire la détection trop souvent, on peut la faire toutes les x secondes ou à chaque update
+        try:
+            st.session_state.suggestions_questions = st.session_state.transcriber.detecter_questions_manquantes(
+                st.session_state.transcriber.full_conversation
+            )
+        except Exception as e:
+            st.error(f"Erreur détection questions: {e}")
+
+# Afficher les questions manquantes si détectées
+if 'suggestions_questions' in st.session_state and st.session_state.suggestions_questions:
+    st.subheader("💡 Questions supplémentaires à poser")
+    for q in st.session_state.suggestions_questions:
+        st.markdown(f"- {q}")
+else:
+    st.subheader("💡 Questions supplémentaires à poser")
+    st.markdown("*Aucune question complémentaire détectée.*")
+
+
 
 # Générer manuellement un rapport structuré
 if st.button("📄 Générer rapport final", 

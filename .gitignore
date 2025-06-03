@@ -4,3 +4,6 @@ mon_env/
 .env
 logigramme.txt
 venv/
+consultation_allergo_*.txt
+transcription_brute_*.txt
+
