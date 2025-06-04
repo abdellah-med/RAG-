@@ -8,6 +8,8 @@ import numpy as np
 from groq import Groq
 import google.generativeai as genai
 from dotenv import load_dotenv
+from should_ask import evaluer_recommandation
+from agnooo import retrieve_and_ask
 
 # Charger les variables d'environnement
 load_dotenv()
@@ -19,6 +21,10 @@ class GroqWhisperLiveTranscriber:
             os.environ["GROQ_API_KEY"] = api_key
         self.client = Groq()
         
+        self.structured_conversation = ""
+        self.suggestions_gemini = []
+        self.suggestions_rag = []
+
         # Configuration Gemini 2.0 Flash
         self.gemini_api_key = gemini_api_key or os.getenv("GEMINI_API_KEY")
         if self.gemini_api_key:
@@ -148,54 +154,54 @@ class GroqWhisperLiveTranscriber:
             except:
                 pass
     
-    def detecter_questions_manquantes(self, texte_conversation: str) -> list:
-        """
-        Analyse automatique du dialogue structuré pour suggérer des questions médicales
-        non abordées dans la consultation.
-        """
-        try:
-            time.sleep(6)
+    # def detecter_questions_manquantes(self, texte_conversation: str) -> list:
+    #     """
+    #     Analyse automatique du dialogue structuré pour suggérer des questions médicales
+    #     non abordées dans la consultation.
+    #     """
+    #     try:
+    #         time.sleep(6)
 
-            prompt = f"""
-    Tu es un assistant médical expert en consultations d’allergologie.
+    #         prompt = f"""
+    # Tu es un assistant médical expert en consultations d’allergologie.
 
-    Tu as reçu le compte-rendu structuré suivant entre un médecin et un patient :
+    # Tu as reçu le compte-rendu structuré suivant entre un médecin et un patient :
 
-    {texte_conversation}
+    # {texte_conversation}
 
-    Analyse cette discussion et identifie les **thèmes médicaux importants NON abordés** parmi :
-    - Symptômes précis
-    - Durée des symptômes
-    - Environnement allergène (animaux, acariens, pollen…)
-    - Traitements déjà essayés
-    - Antécédents médicaux ou familiaux
-    - Facteurs aggravants (saison, activité, lieu...)
+    # Analyse cette discussion et identifie les **thèmes médicaux importants NON abordés** parmi :
+    # - Symptômes précis
+    # - Durée des symptômes
+    # - Environnement allergène (animaux, acariens, pollen…)
+    # - Traitements déjà essayés
+    # - Antécédents médicaux ou familiaux
+    # - Facteurs aggravants (saison, activité, lieu...)
 
-    **Objectif :** proposer des questions que le MÉDECIN aurait pu poser mais n’a pas posées.
+    # **Objectif :** proposer des questions que le MÉDECIN aurait pu poser mais n’a pas posées.
 
-    **Format de réponse attendu :**
-    === QUESTIONS COMPLÉMENTAIRES SUGGÉRÉES ===
-    - [Question 1]
-    - [Question 2]
-    ...
-    """
+    # **Format de réponse attendu :**
+    # === QUESTIONS COMPLÉMENTAIRES SUGGÉRÉES ===
+    # - [Question 1]
+    # - [Question 2]
+    # ...
+    # """
 
-            response = self.gemini_model.generate_content(prompt)
+    #         response = self.gemini_model.generate_content(prompt)
 
-            if response.text and "QUESTIONS COMPLÉMENTAIRES" in response.text:
-                lines = response.text.strip().splitlines()
-                suggestions = [
-                    line.strip("- ").strip()
-                    for line in lines
-                    if line.startswith("- ")
-                ]
-                return suggestions
-            else:
-                return []
+    #         if response.text and "QUESTIONS COMPLÉMENTAIRES" in response.text:
+    #             lines = response.text.strip().splitlines()
+    #             suggestions = [
+    #                 line.strip("- ").strip()
+    #                 for line in lines
+    #                 if line.startswith("- ")
+    #             ]
+    #             return suggestions
+    #         else:
+    #             return []
 
-        except Exception as e:
-            print(f"❌ Erreur lors de la détection de questions manquantes: {e}")
-            return []
+    #     except Exception as e:
+    #         print(f"❌ Erreur lors de la détection de questions manquantes: {e}")
+    #         return []
 
     def process_with_gemini(self):
         """Envoie la conversation complète à Gemini 2.0 Flash pour diarisation améliorée"""
@@ -254,14 +260,14 @@ PATIENT: Depuis environ 3 semaines, surtout le matin.
                 self.display_structured_conversation(response.text)
 
                 # ➕ Suggestions intelligentes de questions manquantes
-                suggestions = self.detecter_questions_manquantes(response.text)
-                if suggestions:
-                    print("\n💡 QUESTIONS SUPPLÉMENTAIRES À POSER :")
-                    print("="*40)
-                    for q in suggestions:
-                        print(f"- {q}")
-                else:
-                    print("\n✅ Aucune question importante ne semble avoir été oubliée.")
+                # suggestions = self.detecter_questions_manquantes(response.text)
+                # if suggestions:
+                #     print("\n💡 QUESTIONS SUPPLÉMENTAIRES À POSER :")
+                #     print("="*40)
+                #     for q in suggestions:
+                #         print(f"- {q}")
+                # else:
+                #     print("\n✅ Aucune question importante ne semble avoir été oubliée.")
             else:
                 print("❌ Réponse Gemini vide")
                 
@@ -269,13 +275,13 @@ PATIENT: Depuis environ 3 semaines, surtout le matin.
             print(f"❌ Erreur traitement Gemini: {e}")
     
     def display_structured_conversation(self, text):
-        """Affiche la conversation structurée avec mise en forme"""
+        self.structured_conversation = text
+        self.suggestions_gemini = []
+        self.suggestions_rag = []
         os.system('clear' if os.name == 'posix' else 'cls')
         print("\n" + "="*60)
         print("🤖 CONSULTATION STRUCTURÉE (Gemini 2.0 Flash):")
         print("="*60)
-        
-        # Détection des sections
         if "===" in text:
             print(text)
         elif "MÉDECIN:" in text and "PATIENT:" in text:
@@ -285,8 +291,38 @@ PATIENT: Depuis environ 3 semaines, surtout le matin.
             print("-"*40)
             print(text)
             print("-"*40)
-        
         print("="*60 + "\n")
+
+        try:
+            decision = evaluer_recommandation(text, self.medical_context)
+            if decision == "non":
+                print("💡 Générer des questions complémentaires (discussion jugée incomplète)")
+
+                # RAG 1 : Questions manquantes via Gemini
+                suggestions = self.detecter_questions_manquantes(text)
+                if suggestions:
+                    print("\n💡 QUESTIONS SUPPLÉMENTAIRES (Gemini) :")
+                    for q in suggestions:
+                        print(f"- {q}")
+                else:
+                    print("✅ Aucune question importante détectée par Gemini.")
+
+                # RAG 2 : Questions via base documentaire (agnooo)
+                try:
+                    rag_questions = retrieve_and_ask(
+                        top_docs=None,  # ou passe les documents pertinents si tu en as
+                        question="Quelles questions complémentaires poser ?",
+                        context=text
+                    )
+                    print("\n💡 QUESTIONS SUPPLÉMENTAIRES (RAG agnooo) :")
+                    print(rag_questions)
+                except Exception as e:
+                    print(f"Erreur RAG agnooo : {e}")
+
+            else:
+                print("✅ Discussion jugée suffisamment complète, pas de questions complémentaires à générer.")
+        except Exception as e:
+            print(f"Erreur lors de l'évaluation de la discussion structurée: {e}")
             
     def stop_recording(self):
         """Arrête l'enregistrement"""
@@ -299,12 +335,12 @@ PATIENT: Depuis environ 3 semaines, surtout le matin.
         self.audio.terminate()
 
         # Sauvegarder la transcription brute dans un fichier texte
-        if self.full_conversation.strip():
-            timestamp = time.strftime("%Y%m%d_%H%M%S")
-            txt_filename = f"transcription_brute_{timestamp}.txt"
-            with open(txt_filename, "w", encoding="utf-8") as f:
-                f.write(self.full_conversation)
-            print(f"📝 Transcription brute sauvegardée dans : {txt_filename}")
+        # if self.full_conversation.strip():
+        #     timestamp = time.strftime("%Y%m%d_%H%M%S")
+        #     txt_filename = f"transcription_brute_{timestamp}.txt"
+        #     with open(txt_filename, "w", encoding="utf-8") as f:
+        #         f.write(self.full_conversation)
+        #     print(f"📝 Transcription brute sauvegardée dans : {txt_filename}")
 
         # Traitement final amélioré
         # print("\n📄 Génération du rapport final...")
@@ -317,10 +353,10 @@ PATIENT: Depuis environ 3 semaines, surtout le matin.
         if not self.full_conversation.strip():
             return
         
-        if hasattr(self, 'structured_conversation') and self.structured_conversation:
-            self.suggestions_questions = self.detecter_questions_manquantes(self.structured_conversation)
-        else:
-            self.suggestions_questions = []
+        # if hasattr(self, 'structured_conversation') and self.structured_conversation:
+        #     self.suggestions_questions = self.detecter_questions_manquantes(self.structured_conversation)
+        # else:
+        #     self.suggestions_questions = []
 
         # print("\n" + "="*70)
         # print("📊 RAPPORT FINAL DE CONSULTATION (ANALYSE COMPLÈTE)")

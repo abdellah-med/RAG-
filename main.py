@@ -8,6 +8,7 @@ from query_gen import generate_query
 from agnooo import retrieve_and_ask
 
 
+
 if __name__ == "__main__":
     collection_name = "corpus_a"
     client = connect_to_qdrant()
