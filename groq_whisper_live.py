@@ -10,12 +10,13 @@ import google.generativeai as genai
 from dotenv import load_dotenv
 from should_ask import evaluer_recommandation
 from agnooo import retrieve_and_ask
+from indexall_minilm import get_similar_documents
 
 # Charger les variables d'environnement
 load_dotenv()
 
 class GroqWhisperLiveTranscriber:
-    def __init__(self, api_key=None, gemini_api_key=None):
+    def __init__(self, api_key=None, gemini_api_key=None, qdrant_client=None, collection_name=None):
         # Initialiser le client Groq
         if api_key:
             os.environ["GROQ_API_KEY"] = api_key
@@ -24,6 +25,9 @@ class GroqWhisperLiveTranscriber:
         self.structured_conversation = ""
         self.suggestions_gemini = []
         self.suggestions_rag = []
+
+        self.qdrant_client = qdrant_client
+        self.collection_name = collection_name
 
         # Configuration Gemini 2.0 Flash
         self.gemini_api_key = gemini_api_key or os.getenv("GEMINI_API_KEY")
@@ -76,16 +80,10 @@ class GroqWhisperLiveTranscriber:
             print("Appuyez sur Ctrl+C pour arrêter")
             
             try:
-                while self.is_recording:
-                    # Enregistrer un segment audio
-                    audio_file_path = self.record_segment()
-                    
-                    # Transcrire le segment avec Groq
-                    if audio_file_path:
-                        threading.Thread(
-                            target=self.transcribe_and_process, 
-                            args=(audio_file_path,)
-                        ).start()
+             while self.is_recording:
+                audio_file_path = self.record_segment()
+                if audio_file_path:
+                    self.transcribe_and_process(audio_file_path)
                         
             except KeyboardInterrupt:
                 print("\n🛑 Arrêt de l'écoute...")
@@ -273,10 +271,10 @@ PATIENT: Depuis environ 3 semaines, surtout le matin.
                 
         except Exception as e:
             print(f"❌ Erreur traitement Gemini: {e}")
-    
+
+
     def display_structured_conversation(self, text):
         self.structured_conversation = text
-        self.suggestions_gemini = []
         self.suggestions_rag = []
         os.system('clear' if os.name == 'posix' else 'cls')
         print("\n" + "="*60)
@@ -294,33 +292,58 @@ PATIENT: Depuis environ 3 semaines, surtout le matin.
         print("="*60 + "\n")
 
         try:
+            # Vérifie qu'il y a bien un dialogue structuré et au moins une phrase PATIENT non triviale
+            if (
+                "Aucun dialogue structuré trouvé" in text
+                or "Aucun dialogue pertinent n'a été transcrit" in text
+            ):
+                print("Aucun dialogue structuré détecté, aucune suggestion IA ne sera générée.")
+                self.suggestions_rag = []
+                return
+
+            # Vérifie qu'il y a au moins une phrase PATIENT non triviale
+            patient_lines = [
+                line for line in text.splitlines()
+                if line.strip().startswith("PATIENT:") and len(line.strip().replace("PATIENT:", "").strip()) > 3 and "merci" not in line.lower()
+            ]
+            if not patient_lines:
+                print("Aucune intervention patient pertinente détectée, pas de suggestion IA.")
+                self.suggestions_rag = []
+                return
+
+            # Décision IA : faut-il poser une question complémentaire ?
             decision = evaluer_recommandation(text, self.medical_context)
             if decision == "non":
-                print("💡 Générer des questions complémentaires (discussion jugée incomplète)")
-
-                # RAG 1 : Questions manquantes via Gemini
-                suggestions = self.detecter_questions_manquantes(text)
-                if suggestions:
-                    print("\n💡 QUESTIONS SUPPLÉMENTAIRES (Gemini) :")
-                    for q in suggestions:
-                        print(f"- {q}")
-                else:
-                    print("✅ Aucune question importante détectée par Gemini.")
-
-                # RAG 2 : Questions via base documentaire (agnooo)
+                print("💡 Générer une question complémentaire (discussion jugée incomplète)")
                 try:
-                    rag_questions = retrieve_and_ask(
-                        top_docs=None,  # ou passe les documents pertinents si tu en as
-                        question="Quelles questions complémentaires poser ?",
-                        context=text
+                    last_patient_phrase = patient_lines[-1]
+                    question = (
+                        "Propose une seule question pertinente à poser selon la dernière intervention du patient, "
+                        "comme si elle était posée par le médecin."
                     )
-                    print("\n💡 QUESTIONS SUPPLÉMENTAIRES (RAG agnooo) :")
-                    print(rag_questions)
+                    top_docs = get_similar_documents(
+                        client=self.qdrant_client,
+                        collection_name=self.collection_name,
+                        query_text=last_patient_phrase,
+                        top_k=3
+                    )
+                    if top_docs:
+                        rag_question = retrieve_and_ask(
+                            top_docs=top_docs,
+                            question=question,
+                            conversation_text=last_patient_phrase
+                        )
+                        self.suggestions_rag = [rag_question]
+                        print("\n💡 QUESTION IA TEMPS RÉEL :")
+                        print(rag_question)
+                    else:
+                        self.suggestions_rag = []
+                        print("Aucun document similaire trouvé, pas de suggestion IA.")
                 except Exception as e:
-                    print(f"Erreur RAG agnooo : {e}")
-
+                    print(f"Erreur génération question temps réel : {e}")
             else:
                 print("✅ Discussion jugée suffisamment complète, pas de questions complémentaires à générer.")
+                self.suggestions_rag = []
         except Exception as e:
             print(f"Erreur lors de l'évaluation de la discussion structurée: {e}")
             

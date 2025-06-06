@@ -63,9 +63,12 @@ client, collection_name = initialize_qdrant()
 # En-tête principal
 st.markdown('<h1 class="main-header">🩺 Assistant IA pour discussions Médicales</h1>', unsafe_allow_html=True)
     
-# Initialiser le transcripteur une seule fois
+
 if 'transcriber' not in st.session_state:
-    st.session_state.transcriber = GroqWhisperLiveTranscriber()
+    st.session_state.transcriber = GroqWhisperLiveTranscriber(
+        qdrant_client=client,
+        collection_name=collection_name
+    )
 
 # État global de l'enregistrement
 if "is_recording" not in st.session_state:
@@ -159,18 +162,18 @@ if not st.session_state.is_recording and st.session_state.transcriber.full_conve
     st.markdown(response)
 
     # 2. Discussion structurée ensuite (extrait structuré si dispo)
-    st.markdown("### 🤖 Discussion structurée (Gemini) :")
-    import re
-    if hasattr(st.session_state.transcriber, "structured_conversation") and st.session_state.transcriber.structured_conversation:
-        text = st.session_state.transcriber.structured_conversation
-        match = re.search(r"(=== DIALOGUE STRUCTURÉ ===.*?)(?:\n===|\Z)", text, re.DOTALL)
-        if match:
-            dialogue_struct = match.group(1).replace("\n", "  \n")
-            st.markdown(dialogue_struct)
-        else:
-            st.markdown("Aucun dialogue structuré trouvé.")
-    else:
-        st.markdown(discussion_text.replace("\n", "  \n"))
+    # st.markdown("### 🤖 Discussion structurée (Gemini) :")
+    # import re
+    # if hasattr(st.session_state.transcriber, "structured_conversation") and st.session_state.transcriber.structured_conversation:
+    #     text = st.session_state.transcriber.structured_conversation
+    #     match = re.search(r"(=== DIALOGUE STRUCTURÉ ===.*?)(?:\n===|\Z)", text, re.DOTALL)
+    #     if match:
+    #         dialogue_struct = match.group(1).replace("\n", "  \n")
+    #         st.markdown(dialogue_struct)
+    #     else:
+    #         st.markdown("Aucun dialogue structuré trouvé.")
+    # else:
+    #     st.markdown(discussion_text.replace("\n", "  \n"))
 
     # (Optionnel) Afficher les timings ou autres infos
 

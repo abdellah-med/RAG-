@@ -30,7 +30,7 @@ def evaluer_recommandation(discussion: str, contexte: str) -> str:
     1. Analysez minutieusement la conversation entre médecin allergologue et patient
     2. Examinez la requête générée et le logigramme fournis dans le contexte
     3. Évaluez la qualité et pertinence de la discussion sur une échelle de 0 à 1
-    4. Répondez UNIQUEMENT avec un nombre décimal entre 0 et 1 
+    4. Répondez UNIQUEMENT avec un nombre décimal entre 0 et 1 sans texte autour
        - 1.0 signifie que la discussion est parfaitement détaillée et pertinente
        - 0.0 signifie que la discussion est totalement inadéquate
     
@@ -59,22 +59,22 @@ def evaluer_recommandation(discussion: str, contexte: str) -> str:
         reponse = response.choices[0].message.content.strip()
         print(f"Score de confiance: {reponse}")
         
+        import re
+
         try:
-            # Convertir la réponse en nombre flottant
-            indice = float(reponse)
-            
-            # S'assurer que l'indice est entre 0 et 1
-            indice = max(0.0, min(1.0, indice))
-            
-            print(f"Score normalisé: {indice}")
-            
-            # Retourner 'oui' si l'indice est supérieur à 0.5, 'non' sinon
-            return "oui" if indice > 0.1 else "non"
-            
-        except ValueError:
-            print(f"Erreur: impossible de convertir '{reponse}' en nombre")
-            # Fallback sur la méthode par mot-clé
-            return "oui" if "oui" in reponse.lower() else "non"
+            # Extraire le premier nombre décimal de la réponse
+            match = re.search(r"([01](?:[.,]\d+)?)", reponse)
+            if match:
+                indice = float(match.group(1).replace(",", "."))
+                indice = max(0.0, min(1.0, indice))
+                print(f"Score normalisé: {indice}")
+                return "oui" if indice > 0.1 else "non"
+            else:
+                print(f"Erreur: aucun nombre trouvé dans '{reponse}'")
+                return "oui" if "oui" in reponse.lower() else "non"
+        except Exception as e:
+            print(f"Erreur lors du parsing du score: {e}")
+            return "non"
 
     except Exception as e:
         print(f"Erreur lors de l'évaluation: {e}")

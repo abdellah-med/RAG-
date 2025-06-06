@@ -20,7 +20,7 @@ agent = Agent(
         "Analyse la discussion entre le médecin et le patient.",
         "Prends en compte la documentation fournie.",
         "Utilise tes données personnelles et la documentation fournie pour approfondir les petits détails oubliés par le médecin.",
-        "Propose une seule question pertinente, pas trop longue, à poser au patient en fonction des informations disponibles."
+        "Propose une seule question pertinente, pas trop longue, à poser au patient en fonction des informations disponibles. Ne fais pas de justification, donne uniquement la question."
     ], 
     markdown=True
 )
